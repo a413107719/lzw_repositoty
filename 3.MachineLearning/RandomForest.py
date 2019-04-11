@@ -1,10 +1,10 @@
 # -*- coding:utf-8 -*-
 import numpy as np
 import pandas as pd
+from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.grid_search import GridSearchCV
-from sklearn import cross_validation, metrics
+
 
 
 # 导入数据集
@@ -48,21 +48,6 @@ for i in range(9):
     print(rf0.oob_score_)
 # todo:绘制“分类树数量对应误差率折线图”
 
-# param_test1 = {'n_estimators': list(range(10, 71, 10))}
-# gsearch1 = GridSearchCV(estimator = RandomForestClassifier(min_samples_split=100,
-#                                   min_samples_leaf=20,max_depth=8,max_features='sqrt' ,random_state=10),
-#                        param_grid = param_test1, scoring='roc_auc',cv=5)
-# gsearch1.fit(x,y)
-# print(gsearch1.grid_scores_, gsearch1.best_params_, gsearch1.best_score_)
-
-
-param_test2 = {'max_depth':list(range(3,14,2)), 'min_samples_split':list(range(50,201,20))}
-gsearch2 = GridSearchCV(estimator = RandomForestClassifier(n_estimators= 60,
-                                  min_samples_leaf=20,max_features='sqrt' ,oob_score=True, random_state=10),
-   param_grid = param_test2, scoring='roc_auc',iid=False, cv=5)
-gsearch2.fit(x,y)
-print(gsearch2.grid_scores_, gsearch2.best_params_, gsearch2.best_score_)
-
 
 
 
@@ -75,3 +60,4 @@ print(gsearch2.grid_scores_, gsearch2.best_params_, gsearch2.best_score_)
 
 # 绘图：
 # 可视化随机森林中的一棵树： https://www.jianshu.com/p/58815b3e761c
+# https://blog.csdn.net/xinshucredit/article/details/88538017
