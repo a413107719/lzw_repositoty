@@ -21,11 +21,12 @@ def top_variable_importance():
     indices = np.argsort(importances)[::-1]
     # print(indices)
     np.argsort(x_columns,)
-    list=[]
+    list = []
     print('-- Top Variable Importance --')
     table3 = PrettyTable(['序号', '评价特征', '重要性'])
     for f in range(X_train.shape[1]):
         table3.add_row([f+1, feat_labels[indices[f]], round(importances[indices[f]], 2)])
+        list.append(feat_labels[indices[f]])
     print(table3)
     print()
     # 筛选变量（选择重要性比较高的变量）
