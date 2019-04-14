@@ -1,14 +1,13 @@
 import numpy as np
-import pandas as pd
-from sklearn import tree
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import confusion_matrix as con
 from sklearn.metrics import zero_one_loss
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import AdaBoostClassifier
 import matplotlib.pyplot as plt
+from collections import OrderedDict
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-import prettytable
 from prettytable import PrettyTable
 
 
@@ -22,10 +21,10 @@ def top_variable_importance():
     # print(indices)
     np.argsort(x_columns,)
     list = []
-    print('-- Top Variable Importance --')
-    table3 = PrettyTable(['序号', '评价特征', '重要性'])
+    print('-- 所有变量影响程度排序 --')
+    table3 = PrettyTable(['序号', '评价特征', '重要性(%)'])
     for f in range(X_train.shape[1]):
-        table3.add_row([f+1, feat_labels[indices[f]], round(importances[indices[f]], 2)])
+        table3.add_row([f+1, feat_labels[indices[f]], round(importances[indices[f]]*100, 2)])
         list.append(feat_labels[indices[f]])
     print(table3)
     print()
@@ -118,6 +117,38 @@ def findbest_n_estimators(max_trees_num):
 
     plt.show()
 
+# 不同max_features取值对应误差大小
+def findbest_maxfeatures():
+    # 据此修改https://scikit-learn.org/dev/auto_examples/ensemble/plot_ensemble_oob.html#sphx-glr-auto-examples-ensemble-plot-ensemble-oob-py
+    RANDOM_STATE = 123
+    ensemble_clfs = []
+    x_columns = traindata_all.columns[1:len(traindata_all.columns) - 1]
+    for i in range(len(x_columns)):
+        ensemble_clfs.append((i + 1,
+                              RandomForestClassifier(n_estimators=300,
+                                                     warm_start=True, oob_score=True,
+                                                     max_features=i + 1,
+                                                     random_state=RANDOM_STATE)))
+
+    # Map a classifier name to a list of (<n_estimators>, <error rate>) pairs.
+    error_rate = OrderedDict((label, []) for label, _ in ensemble_clfs)
+    # print(error_rate)
+
+    print('-- 不同max_features取值对应误差大小 --')
+    table3 = PrettyTable(['随机特征个数', '误差率'])
+    for label, clf in ensemble_clfs:
+        # for i in range(min_estimators, max_estimators + 1):
+        #     clf.set_params(n_estimators=i)
+        clf.fit(X, y)
+
+        # Record the OOB error for each `n_estimators=i` setting.
+        oob_error = 1 - clf.oob_score_
+        error_rate[label].append((round(oob_error, 4)))
+        # print(label)
+        # print(round(oob_error,4))
+        table3.add_row([label, round(oob_error, 4)])
+    print(table3)
+    print()
 
 if __name__ == '__main__':
     # 获取数据
@@ -145,7 +176,7 @@ if __name__ == '__main__':
     print()
 
     # 建立模型
-    forest = RandomForestClassifier(n_estimators=10000, random_state=0, n_jobs=-1)  # 实例化
+    forest = RandomForestClassifier(n_estimators=500, random_state=0, n_jobs=-1)  # 实例化
     forest.fit(X_train, y_train)   # 用训练集数据训练模型
     result = forest.fit(X_train, y_train).predict(X_test)
     # 打印混淆矩阵
@@ -159,7 +190,10 @@ if __name__ == '__main__':
     print('准确率： ' + str(round(score, 2)) + '\n')
 
     # 分类树数量和误差率的关系
-    findbest_n_estimators(100)
+    # findbest_n_estimators(100)
+
+    # 不同max_features取值对应误差大小
+    findbest_maxfeatures()
 
     # 因子重要性判断
     top_variable_importance()
