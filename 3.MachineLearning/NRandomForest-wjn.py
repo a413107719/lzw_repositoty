@@ -1,30 +1,10 @@
-# conding=utf-8
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
  
-train_data = pd.read_csv("D:/datacsv2.csv")
+train_data = pd.read_csv("D:/data2.csv")
  
- 
-#def harmonize_data(titanic):
-    # 填充空数据 和 把string数据转成integer表示
-    # titanic['SI'] = titanic['SI'] * 10000
-    # titanic["Age"] = titanic["Age"].fillna(titanic["Age"].median())
- 
-    # titanic.loc[titanic["Sex"] == "male", "Sex"] = 0
-    # titanic.loc[titanic["Sex"] == "female", "Sex"] = 1
- 
-    # titanic["Embarked"] = titanic["Embarked"].fillna("S")
- 
-    # titanic.loc[titanic["Embarked"] == "S", "Embarked"] = 0
-    # titanic.loc[titanic["Embarked"] == "C", "Embarked"] = 1
-    # titanic.loc[titanic["Embarked"] == "Q", "Embarked"] = 2
- 
-    # titanic["Fare"] = titanic["Fare"].fillna(titanic["Fare"].median())
- 
-    # return titanic
- 
-#train_data = harmonize_data(train)
+
 
 
 predictors = ["TR","TCH","FZZ","MZ","SLH","TRJ","TRS","SJD","JMD","DM","PW","ELE","ASP","SLP"]

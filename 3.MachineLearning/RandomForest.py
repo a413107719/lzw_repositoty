@@ -9,6 +9,9 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from prettytable import PrettyTable
+from sklearn.model_selection import cross_val_score
+from sklearn.neighbors import KNeighborsClassifier  #一个简单的模型，只有K一个参数，类似K-means
+from pylab import mpl
 
 
 # 打印评价特征和标签特征
@@ -28,6 +31,32 @@ def print_featurelable():
     print(table2)
     print()
 
+
+# 交叉验证
+def cross_validation():
+    k_range = range(1, 31)
+    cv_scores = []		# 用来放每个模型的结果值
+    for n in k_range:
+        knn = KNeighborsClassifier(n)   # knn模型，这里一个超参数可以做预测，当多个超参数时需要使用另一种方法GridSearchCV
+        scores = cross_val_score(knn, X_train, y_train, cv=10, scoring='accuracy')  # cv：选择每次测试折数  accuracy：评价指标是准确度,可以省略使用默认值
+        cv_scores.append(scores.mean())
+    max_score = max(cv_scores)
+    max_index = cv_scores.index(max_score)
+
+    # 绘出图形
+    plt.plot(k_range, cv_scores)
+    mpl.rcParams['font.sans-serif'] = ['SimHei']
+    plt.title("交叉验证", fontsize=18)
+    plt.xlabel('K_range')
+    plt.ylabel('Accuracy')		# 通过图像选择最好的参数
+    plt.show()
+    best_knn = KNeighborsClassifier(n_neighbors=max_index)	 # 选择最优的K=3传入模型
+    best_knn.fit(X_train, y_train)			# 训练模型
+    print('------ 交叉验证 ------')
+    table4 = PrettyTable(['最优K值', '最优评分'])
+    table4.add_row([max_index, round(best_knn.score(X_test, y_test), 4)])
+    print(table4)
+    print()
 
 # 因子重要性判断
 def top_variable_importance(forest):
@@ -158,9 +187,7 @@ def findbest_maxfeatures():
                                                      max_features=i + 1,
                                                      random_state=RANDOM_STATE)))
 
-    # Map a classifier name to a list of (<n_estimators>, <error rate>) pairs.
     error_rate = OrderedDict((label, []) for label, _ in ensemble_clfs)
-    # print(error_rate)
 
     print('-- 不同max_features取值对应误差大小 --')
     table3 = PrettyTable(['随机特征个数', '误差率'])
@@ -178,15 +205,14 @@ def findbest_maxfeatures():
     print(table3)
     print()
 
-    # 打印混淆矩阵
 
-
+# 打印混淆矩阵
 def print_mxjuzhen(result, forest):
     print('------------ 随机森林模型混淆矩阵 ------------')
     table = con(y_test, result)
-    table_x = PrettyTable(['实际类别', '预测适宜', '预测不适宜', '分类误差率'])
-    table_x.add_row(["适宜", table[0][0], table[0][1], round(table[0][1] / table[0][0], 2)])
-    table_x.add_row(["不适宜", table[1][0], table[1][1], round(table[1][1] / table[1][0], 2)])
+    table_x = PrettyTable(['实际类别', '预测适宜', '预测不适宜', '分类误差率(%)'])
+    table_x.add_row(["适宜", table[0][0], table[0][1], round(table[0][1] / table[0][0]*100, 2)])
+    table_x.add_row(["不适宜", table[1][0], table[1][1], round(table[1][0] / table[1][1]*100, 2)])
     print(table_x)
     score = forest.score(X_test, y_test)    # 测试准确率
     print('准确率： ' + str(round(score, 2)) + '\n')
@@ -207,6 +233,9 @@ if __name__ == '__main__':
     # 建立模型
     forest, result = build_model()
 
+    # 交叉验证
+    cross_validation()
+
     # 打印混淆矩阵
     print_mxjuzhen(result, forest)
 
@@ -216,5 +245,5 @@ if __name__ == '__main__':
     # 不同max_features取值对应误差大小
     findbest_maxfeatures()
 
-    # 因子重要性判断1
+    # 因子重要性判断
     top_variable_importance(forest)
