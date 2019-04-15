@@ -216,5 +216,5 @@ if __name__ == '__main__':
     # 不同max_features取值对应误差大小
     findbest_maxfeatures()
 
-    # 因子重要性判断
+    # 因子重要性判断1
     top_variable_importance(forest)
