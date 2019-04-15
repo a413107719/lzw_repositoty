@@ -156,7 +156,6 @@ if __name__ == '__main__':
     table_x.add_row(["适宜", table[0][0], table[0][1], round(table[0][1] / table[0][0], 2)])
     table_x.add_row(["不适宜", table[1][0], table[1][1], round(table[1][1] / table[1][0], 2)])
     print(table_x)
-
     score = forest.score(X_test, y_test)    # 测试准确率
     print('准确率： ' + str(round(score, 2)) + '\n')
 
