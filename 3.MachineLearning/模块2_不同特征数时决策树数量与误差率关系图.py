@@ -16,7 +16,9 @@ def findbest_maxfeatures():
         ensemble_clfs.append((i + 1, RandomForestClassifier(n_estimators=20, warm_start=True, oob_score=True,
                                                             max_features=i + 1, random_state=RANDOM_STATE)))
     error_rate = OrderedDict((label, []) for label, _ in ensemble_clfs)
-    # print(error_rate)
+    print(error_rate)
+    print('-----')
+    # print(ensemble_clfs)
 
     # 绘制表格
     print('-- 不同max_features取值对应误差大小 --')
@@ -27,7 +29,7 @@ def findbest_maxfeatures():
         error_rate[label].append((round(oob_error, 4)))
         table3.add_row([label, round(oob_error, 4)])
     print(table3)
-
+    # print(error_rate)
 
 # 获取数据
 traindata_all = pd.read_csv("D:/data24.csv")

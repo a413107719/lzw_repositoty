@@ -1,17 +1,21 @@
-import numpy as np
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import confusion_matrix as con
 from sklearn.metrics import zero_one_loss
 from sklearn.ensemble import AdaBoostClassifier
 import matplotlib.pyplot as plt
 from collections import OrderedDict
-import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
 from prettytable import PrettyTable
 from sklearn.model_selection import cross_val_score
 from sklearn.neighbors import KNeighborsClassifier  #一个简单的模型，只有K一个参数，类似K-means
 from pylab import mpl
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+import pydotplus
+from sklearn import tree
+from IPython.display import Image
+import os
 
 
 # 打印评价特征和标签特征
@@ -165,7 +169,7 @@ def findbest_n_estimators(max_trees_num):
             color='green')
 
     ax.set_ylim((0.0, 0.5))
-    ax.set_xlabel('max_trees_num')
+    ax.set_xlabel('n_estimators')
     ax.set_ylabel('error rate')
 
     leg = ax.legend(loc='upper right', fancybox=True)
@@ -218,6 +222,32 @@ def print_mxjuzhen(result, forest):
     print('准确率： ' + str(round(score, 2)) + '\n')
 
 
+# 画出决策树
+def draw_tree():
+    feat_labels = traindata_all.columns[1:len(traindata_all.columns) - 1]
+    X_lables = [x for x in feat_labels]
+    y_lables = traindata_all.columns[len(traindata_all.columns) - 1]
+
+    # 接着，构建决策树模型
+    model_tree = DecisionTreeClassifier()
+    model_tree.fit(X_train, y_train)
+
+    # # 评价模型准确性
+    # y_prob = model_tree.predict_proba(X_test)[:, 1]
+    # y_pred = np.where(y_prob > 0.5, 1, 0)
+    # model_tree_score = model_tree.score(X_test, y_pred)
+    # print('模型准确性：' + str(model_tree_score))
+
+    os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'
+    dot_tree = tree.export_graphviz(model_tree, out_file=None, feature_names=X_lables, class_names=y_lables,
+                                    filled=True, rounded=True, special_characters=True)
+    graph = pydotplus.graph_from_dot_data(dot_tree)
+    img = Image(graph.create_png())
+    # 设置决策树名称和输出路径
+    graph.write_png("D:/out12121.png")
+
+
+
 if __name__ == '__main__':
     # 获取数据
     traindata_all = pd.read_csv("D:/data24.csv")
@@ -247,3 +277,6 @@ if __name__ == '__main__':
 
     # 因子重要性判断
     top_variable_importance(forest)
+
+    # 画出决策树
+    draw_tree()

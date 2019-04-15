@@ -46,6 +46,22 @@ def top_variable_importance():
         plt.xticks(np.arange(x_columns.shape[0]), list, rotation=90, fontsize=12)
     plt.show()
 
+    # 可视化
+    import matplotlib.pyplot as plt
+    plt.figure(figsize=(10, 6))
+    plt.title("数据集中各个特征的重要程度", fontsize=18)
+    plt.ylabel("import level", fontsize=15, rotation=90)
+    plt.rcParams['font.sans-serif'] = ["SimHei"]
+    plt.rcParams['axes.unicode_minus'] = False
+    # 循环所有因子字段
+    for i in range(x_columns.shape[0]):
+        # todo
+        plt.scatter()
+        # plt.bar(i, importances[indices[i]])
+        # plt.xticks(np.arange(x_columns.shape[0]), list)
+    plt.show()
+
+
 # 分类树数量和误差率的关系
 def findbest_n_estimators(max_trees_num):
     learning_rate = 1
@@ -149,18 +165,18 @@ if __name__ == '__main__':
     forest = RandomForestClassifier(n_estimators=10000, random_state=0, n_jobs=-1)  # 实例化
     forest.fit(X_train, y_train)   # 用训练集数据训练模型
     result = forest.fit(X_train, y_train).predict(X_test)
-    # 打印混淆矩阵
-    print('------------ 随机森林模型混淆矩阵 ------------')
-    table = con(y_test, result)
-    table_x = PrettyTable(['实际类别', '预测适宜', '预测不适宜', '分类误差率'])
-    table_x.add_row(["适宜", table[0][0], table[0][1], round(table[0][1] / table[0][0], 2)])
-    table_x.add_row(["不适宜", table[1][0], table[1][1], round(table[1][1] / table[1][0], 2)])
-    print(table_x)
-    score = forest.score(X_test, y_test)    # 测试准确率
-    print('准确率： ' + str(round(score, 2)) + '\n')
-
-    # 分类树数量和误差率的关系
-    findbest_n_estimators(100)
+    # # 打印混淆矩阵
+    # print('------------ 随机森林模型混淆矩阵 ------------')
+    # table = con(y_test, result)
+    # table_x = PrettyTable(['实际类别', '预测适宜', '预测不适宜', '分类误差率'])
+    # table_x.add_row(["适宜", table[0][0], table[0][1], round(table[0][1] / table[0][0], 2)])
+    # table_x.add_row(["不适宜", table[1][0], table[1][1], round(table[1][1] / table[1][0], 2)])
+    # print(table_x)
+    # score = forest.score(X_test, y_test)    # 测试准确率
+    # print('准确率： ' + str(round(score, 2)) + '\n')
+    #
+    # # 分类树数量和误差率的关系
+    # findbest_n_estimators(100)
 
     # 因子重要性判断
     top_variable_importance()
