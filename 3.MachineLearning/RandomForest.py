@@ -6,7 +6,7 @@ from collections import OrderedDict
 from sklearn.ensemble import RandomForestClassifier
 from prettytable import PrettyTable
 from sklearn.model_selection import cross_val_score
-from sklearn.neighbors import KNeighborsClassifier  #一个简单的模型，只有K一个参数，类似K-means
+from sklearn.neighbors import KNeighborsClassifier
 from pylab import mpl
 import pandas as pd
 import numpy as np
@@ -244,14 +244,20 @@ def draw_tree():
     graph = pydotplus.graph_from_dot_data(dot_tree)
     img = Image(graph.create_png())
     # 设置决策树名称和输出路径
-    graph.write_png("D:/out12121.png")
+    graph.write_png("D:/out0416.png")
+    print("D:/out0416.png")
 
 
 
 if __name__ == '__main__':
+    # 设置参数
+    import arcpy
+    csv_route = arcpy.GetParameterAsText(0)  # 设置训练数据路径，例如D:/data24.csv。格式必须为csv,第一列是ID，最后一列是标签。
+    testsize = arcpy.GetParameterAsText(1)   # 设置测试数据占比，例如0.3。格式为float。
+
+
     # 获取数据
     traindata_all = pd.read_csv("D:/data24.csv")
-    traindata_all.columns = ["ID", "TR", "TCH", "FZZ", "MZ", "SLH", "TRJ", "TRS", "SJD", "JMD", "DM", "PW", "ELE", "ASP", "SLP", "SI"]
 
     # 将数据集分为训练集和测试集
     X, y = traindata_all.iloc[:, 1:len(traindata_all.columns) - 1].values, traindata_all.iloc[:, len(traindata_all.columns) - 1].values     # 选择评价特征和标签特征
