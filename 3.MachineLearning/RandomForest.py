@@ -18,6 +18,7 @@ from IPython.display import Image
 import os
 
 
+
 # 打印评价特征和标签特征
 def print_featurelable():
     feat_labels = traindata_all.columns[1:len(traindata_all.columns) - 1]
@@ -248,10 +249,11 @@ def draw_tree():
     print("D:/out0416.png")
 
 
-
 if __name__ == '__main__':
-    # 设置参数
     import arcpy
+    arcpy.SignInToPortal(arcpy.GetActivePortalURL(), 'xia1991', 'xia199122')
+
+    # 设置参数
     csv_route = arcpy.GetParameterAsText(0)  # 设置训练数据路径，例如D:/data24.csv。格式必须为csv,第一列是ID，最后一列是标签。
     testsize = arcpy.GetParameterAsText(1)   # 设置测试数据占比，例如0.3。格式为float。
 
