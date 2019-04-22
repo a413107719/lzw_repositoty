@@ -145,8 +145,7 @@ def findbest_maxfeatures():
 def build_model():
     forest = RandomForestClassifier(n_estimators=350, random_state=0, n_jobs=-1, max_features =2)  # 实例化
     forest.fit(X_train, y_train)  # 用训练集数据训练模型
-    result = forest.fit(X_train, y_train).predict(X_test)
-    return forest, result
+    return forest
 
 
 # 交叉验证
@@ -177,15 +176,29 @@ def cross_validation():
 
 
 # 打印混淆矩阵
-def print_mxjuzhen(result, forest):
+def print_mxjuzhen(forest):
+    # result = forest.fit(X_train, y_train).predict(X_test)
+    result = forest.fit(X_train, y_train).predict(X_train)
     print('------------ 随机森林模型混淆矩阵 ------------')
-    table = con(y_test, result)
+    # table = con(y_test, result)
+    table = con(y_train, result)
     table_x = PrettyTable(['实际类别', '预测适宜', '预测不适宜', '分类误差率(%)'])
-    table_x.add_row(["适宜", table[0][0], table[0][1], round(table[0][1] / table[0][0]*100, 2)])
-    table_x.add_row(["不适宜", table[1][0], table[1][1], round(table[1][1] / table[1][0]*100, 2)])
+    table_x.add_row(["适宜", table[0][0], table[0][1], round(table[0][1] / (table[0][1] + table[0][0]) * 100, 2)])
+    table_x.add_row(["不适宜", table[1][0], table[1][1], round(table[1][0] / (table[1][1] + table[1][0]) * 100, 2)])
     print(table_x)
-    score = forest.score(X_test, y_test)    # 测试准确率
-    print('准确率： ' + str(round(score, 2)) + '\n')
+    print()
+
+    result1 = forest.fit(X_train, y_train).predict(X_test)
+    # result = forest.fit(X_train, y_train).predict(X_train)
+    print('--------- 测试数据预测结果 ---------')
+    table = con(y_test, result1)
+    # table = con(y_train, result)
+    table_x = PrettyTable(['实际类别', '预测适宜', '预测不适宜'])
+    table_x.add_row(["适宜", table[0][0], table[0][1]])
+    table_x.add_row(["不适宜", table[1][0], table[1][1]])
+    print(table_x)
+    score = forest.score(X_test, y_test)  # 测试准确率
+    print('模型准确率(泛化程度)： ' + str(round(score * 100, 2)) + '%' + '\n')
 
 
 # 因子重要性判断
@@ -218,7 +231,7 @@ def top_variable_importance(forest):
     plt.rcParams['font.sans-serif'] = ["SimHei"]
     plt.rcParams['axes.unicode_minus'] = False
     for i in range(x_columns.shape[0]):
-        plt.bar(i, importances[indices[i]], color='orange', align='center')
+        plt.bar(i, importances[indices[i]], color='blue', align='center')
         plt.xticks(np.arange(x_columns.shape[0]), list, rotation=90, fontsize=12)
     plt.show()
 
@@ -230,7 +243,7 @@ def draw_tree():
     y_lables = traindata_all.columns[len(traindata_all.columns) - 1]
 
     # 接着，构建决策树模型
-    model_tree = DecisionTreeClassifier()
+    model_tree = DecisionTreeClassifier(criterion='gini', max_depth=3, min_samples_split=2,min_samples_leaf =2,max_features=2)
     model_tree.fit(X_train, y_train)
 
     # # 评价模型准确性
@@ -274,17 +287,26 @@ if __name__ == '__main__':
     findbest_maxfeatures()
 
     # 建立模型
-    forest, result = build_model()
+    forest = build_model()
+
+    # 打印混淆矩阵
+    print_mxjuzhen(forest)
 
     # 交叉验证
     cross_validation()
-
-    # 打印混淆矩阵
-    print_mxjuzhen(result, forest)
 
     # 因子重要性判断
     top_variable_importance(forest)
 
     # 画出决策树
     draw_tree()
+
+
+
+
+
+
+
+
+
 
