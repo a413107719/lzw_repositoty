@@ -16,6 +16,7 @@ import pydotplus
 from sklearn import tree
 from IPython.display import Image
 import os
+from sklearn.feature_extraction import DictVectorizer
 
 
 # 打印评价特征和标签特征
@@ -117,7 +118,7 @@ def findbest_maxfeatures():
     x_columns = traindata_all.columns[1:len(traindata_all.columns) - 1]
     for i in range(len(x_columns)):
         ensemble_clfs.append((i + 1,
-                              RandomForestClassifier(n_estimators=300,
+                              RandomForestClassifier(n_estimators=350,
                                                      warm_start=True, oob_score=True,
                                                      max_features=i + 1,
                                                      random_state=RANDOM_STATE)))
@@ -154,7 +155,8 @@ def cross_validation():
     cv_scores = []		# 用来放每个模型的结果值
     for n in k_range:
         knn = KNeighborsClassifier(n)   # knn模型，这里一个超参数可以做预测，当多个超参数时需要使用另一种方法GridSearchCV
-        scores = cross_val_score(knn, X_train, y_train, cv=10, scoring='accuracy')  # cv：选择每次测试折数  accuracy：评价指标是准确度,可以省略使用默认值
+        # scores = cross_val_score(knn, X_train, y_train, cv=10, scoring='accuracy')  # cv：选择每次测试折数  accuracy：评价指标是准确度,可以省略使用默认值
+        scores = cross_val_score(knn, X_train, y_train, scoring='accuracy')  # cv：选择每次测试折数  accuracy：评价指标是准确度,可以省略使用默认值
         cv_scores.append(scores.mean())
     max_score = max(cv_scores)
     max_index = cv_scores.index(max_score)
@@ -186,6 +188,8 @@ def print_mxjuzhen(forest):
     table_x.add_row(["适宜", table[0][0], table[0][1], round(table[0][1] / (table[0][1] + table[0][0]) * 100, 2)])
     table_x.add_row(["不适宜", table[1][0], table[1][1], round(table[1][0] / (table[1][1] + table[1][0]) * 100, 2)])
     print(table_x)
+    tablescore = (table[0][0] +table[1][1])/(table[0][0] +table[0][1] + table[1][0] +table[1][1])*100
+    print('模型训练精度： ' + str(round(tablescore, 2)) + '%' + '\n')
     print()
 
     result1 = forest.fit(X_train, y_train).predict(X_test)
@@ -261,6 +265,27 @@ def draw_tree():
     graph.write_png("D:/out0416.png")
     print("D:/out0416.png")
 
+def model_predict(X_train,X_test):
+    # 采用DictVectorizer进行特征向量化
+
+    dict_vec = DictVectorizer(sparse=False)
+
+    # X_train = dict_vec.fit_transform(X_train.to_dict(orient='record'))
+    # X_test = dict_vec.transform(X_test.to_dict(orient='record'))
+
+    # 使用随机森林回归模型进行 回归预测
+    from sklearn.ensemble import RandomForestRegressor
+    # from sklearn.ensemble import GradientBoostingRegressor
+    rfr = RandomForestRegressor()
+    # rfr = GradientBoostingRegressor()
+    rfr.fit(X_train, y_train)
+    rfr_y_predict = rfr.predict(X_test)
+
+    # 输出结果
+    rfr_submission = pd.DataFrame({'Id': traindata_all['Id'], 'SalePrice': rfr_y_predict})
+    rfr_submission.to_csv('F:/predict.csv', index=False)
+
+
 
 if __name__ == '__main__':
     # 设置参数
@@ -301,6 +326,8 @@ if __name__ == '__main__':
     # 画出决策树
     draw_tree()
 
+    # 回归预测
+    model_predict(X_train,X_test)
 
 
 
