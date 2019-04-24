@@ -23,7 +23,6 @@ from sklearn.feature_extraction import DictVectorizer
 def print_featurelable():
     feat_labels = traindata_all.columns[1:len(traindata_all.columns) - 1]
     print('\n' + '--- Data summary ---')
-    # info_url = traindata_all.info()
     print('特征因子：' + str([x for x in feat_labels]))
     print('标签因子：' + str(traindata_all.columns[len(traindata_all.columns) - 1]) + '\n')
     print('--- 标签特征统计表 ---')
@@ -146,6 +145,8 @@ def findbest_maxfeatures():
 def build_model():
     forest = RandomForestClassifier(n_estimators=350, random_state=0, n_jobs=-1, max_features =2)  # 实例化
     forest.fit(X_train, y_train)  # 用训练集数据训练模型
+    print(forest)
+    print()
     return forest
 
 
@@ -265,37 +266,9 @@ def draw_tree():
     graph.write_png("D:/out0416.png")
     print("D:/out0416.png")
 
-def model_predict(X_train,X_test):
-    # 采用DictVectorizer进行特征向量化
-
-    dict_vec = DictVectorizer(sparse=False)
-
-    # X_train = dict_vec.fit_transform(X_train.to_dict(orient='record'))
-    # X_test = dict_vec.transform(X_test.to_dict(orient='record'))
-
-    # 使用随机森林回归模型进行 回归预测
-    from sklearn.ensemble import RandomForestRegressor
-    # from sklearn.ensemble import GradientBoostingRegressor
-    rfr = RandomForestRegressor()
-    # rfr = GradientBoostingRegressor()
-    rfr.fit(X_train, y_train)
-    rfr_y_predict = rfr.predict(X_test)
-
-    # 输出结果
-    rfr_submission = pd.DataFrame({'Id': traindata_all['Id'], 'SalePrice': rfr_y_predict})
-    rfr_submission.to_csv('F:/predict.csv', index=False)
-
-
 
 if __name__ == '__main__':
-    # 设置参数
-    import arcpy
-    # csv_route = arcpy.GetParameterAsText(0)  # 设置训练数据路径，例如D:/data24.csv。格式必须为csv,第一列是ID，最后一列是标签。
-    # testsize = arcpy.GetParameterAsText(1)   # 设置测试数据占比，例如0.3。格式为float。
-
-
     # 获取数据
-    # traindata_all = pd.read_csv("D:/data24.csv")
     traindata_all = pd.read_csv("F:/data.csv")
 
     # 将数据集分为训练集和测试集
@@ -325,11 +298,6 @@ if __name__ == '__main__':
 
     # 画出决策树
     draw_tree()
-
-    # 回归预测
-    model_predict(X_train,X_test)
-
-
 
 
 
