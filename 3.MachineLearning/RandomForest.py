@@ -3,30 +3,27 @@ from sklearn.metrics import zero_one_loss
 from sklearn.ensemble import AdaBoostClassifier
 import matplotlib.pyplot as plt
 from collections import OrderedDict
-from sklearn.ensemble import RandomForestClassifier
 from prettytable import PrettyTable
 from sklearn.model_selection import cross_val_score
 from sklearn.neighbors import KNeighborsClassifier
 from pylab import mpl
-import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 import pydotplus
 from sklearn import tree
 from IPython.display import Image
 import os
-from sklearn.feature_extraction import DictVectorizer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import make_scorer, accuracy_score
+from sklearn.model_selection import GridSearchCV
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
 
-# 打印评价特征和标签特征
+# 打印标签统计表
 def print_featurelable():
-    feat_labels = traindata_all.columns[1:len(traindata_all.columns) - 1]
-    print('\n' + '--- Data summary ---')
-    print('特征因子：' + str([x for x in feat_labels]))
-    print('标签因子：' + str(traindata_all.columns[len(traindata_all.columns) - 1]) + '\n')
     print('--- 标签特征统计表 ---')
-    yvalue_table = traindata_all[str(traindata_all.columns[len(traindata_all.columns) - 1])].value_counts()
+    yvalue_table = data_train[str(data_train.columns[len(data_train.columns) - 1])].value_counts()
     table2 = PrettyTable(['值', '数量', '占比'])
     for i in range(len(yvalue_table)):
         value = yvalue_table.index[i]
@@ -114,7 +111,7 @@ def findbest_maxfeatures():
     # 据此修改https://scikit-learn.org/dev/auto_examples/ensemble/plot_ensemble_oob.html#sphx-glr-auto-examples-ensemble-plot-ensemble-oob-py
     RANDOM_STATE = 123
     ensemble_clfs = []
-    x_columns = traindata_all.columns[1:len(traindata_all.columns) - 1]
+    x_columns = data_train.columns[1:len(data_train.columns) - 1]
     for i in range(len(x_columns)):
         ensemble_clfs.append((i + 1,
                               RandomForestClassifier(n_estimators=350,
@@ -143,9 +140,29 @@ def findbest_maxfeatures():
 
 # 建立模型
 def build_model():
-    forest = RandomForestClassifier(n_estimators=350, random_state=0, n_jobs=-1, max_features =2)  # 实例化
-    forest.fit(X_train, y_train)  # 用训练集数据训练模型
-    print(forest)
+    print("开始建立模型！莫慌，模型正在自动修正参数，该出现的始终会出现的。。。。。")
+    # 选择分类器的类型
+    forest = RandomForestClassifier()
+    # 可以通过定义树的各种参数，限制树的大小，防止出现过拟合现象
+    # 模型需要运行两次，第一次树的数量默认值为10，第二次根据可视化图输入最合适值。
+    parameters = {'n_estimators': [10, 100],
+                  'max_features': ['log2', 'sqrt', 'auto'],
+                  'criterion': ['entropy', 'gini'],  # 分类标准用熵，基尼系数
+                  'max_depth': [2, 3, 5, 10],
+                  'min_samples_split': [2, 3, 5],
+                  'min_samples_leaf': [1, 5, 8]
+                  }
+    # 以下是用于比较参数好坏的评分，使用'make_scorer'将'accuracy_score'转换为评分函数
+    acc_scorer = make_scorer(accuracy_score)
+    # 自动调参，GridSearchCV，它存在的意义就是自动调参，只要把参数输进去，就能给出最优化的结果和参数
+    # GridSearchCV用于系统地遍历多种参数组合，通过交叉验证确定最佳效果参数。
+    grid_obj = GridSearchCV(forest, parameters, scoring=acc_scorer)
+    grid_obj = grid_obj.fit(X_train, y_train)
+    # 将forest设置为参数的最佳组合
+    forest = grid_obj.best_estimator_
+    print("建树参数:", forest, sep='\n')
+    # 将最佳算法运用于随机森林，随机森林建树
+    forest.fit(X_train, y_train) # 用训练集数据训练模型
     print()
     return forest
 
@@ -155,9 +172,10 @@ def cross_validation():
     k_range = range(1, 31)
     cv_scores = []		# 用来放每个模型的结果值
     for n in k_range:
-        knn = KNeighborsClassifier(n)   # knn模型，这里一个超参数可以做预测，当多个超参数时需要使用另一种方法GridSearchCV
-        # scores = cross_val_score(knn, X_train, y_train, cv=10, scoring='accuracy')  # cv：选择每次测试折数  accuracy：评价指标是准确度,可以省略使用默认值
-        scores = cross_val_score(knn, X_train, y_train, scoring='accuracy')  # cv：选择每次测试折数  accuracy：评价指标是准确度,可以省略使用默认值
+        # knn模型，这里一个超参数可以做预测，当多个超参数时需要使用另一种方法GridSearchCV
+        knn = KNeighborsClassifier(n)
+        # cv：选择每次测试折数  accuracy：评价指标是准确度,可以省略使用默认值
+        scores = cross_val_score(knn, X_train, y_train, scoring='accuracy')
         cv_scores.append(scores.mean())
     max_score = max(cv_scores)
     max_index = cv_scores.index(max_score)
@@ -208,11 +226,11 @@ def print_mxjuzhen(forest):
 
 # 因子重要性判断
 def top_variable_importance(forest):
-    feat_labels = traindata_all.columns[1:len(traindata_all.columns) - 1]
+    feat_labels = data_train.columns[1:len(data_train.columns) - 1]
     # 对训练好的随机森林，完成重要性评估
     importances = forest.feature_importances_
     # print(importances)
-    x_columns = traindata_all.columns[1:len(traindata_all.columns)-1]
+    x_columns = data_train.columns[1:len(data_train.columns)-1]
     indices = np.argsort(importances)[::-1]
     # print(indices)
     np.argsort(x_columns,)
@@ -224,9 +242,6 @@ def top_variable_importance(forest):
         list.append(feat_labels[indices[f]])
     print(table3)
     print()
-    # 筛选变量（选择重要性比较高的变量）
-    threshold = 0.15
-    x_selected = X_train[:, importances > threshold]
 
     # 可视化
     import matplotlib.pyplot as plt
@@ -243,9 +258,9 @@ def top_variable_importance(forest):
 
 # 画出决策树
 def draw_tree():
-    feat_labels = traindata_all.columns[1:len(traindata_all.columns) - 1]
+    feat_labels = data_train.columns[1:len(data_train.columns) - 1]
     X_lables = [x for x in feat_labels]
-    y_lables = traindata_all.columns[len(traindata_all.columns) - 1]
+    y_lables = data_train.columns[len(data_train.columns) - 1]
 
     # 接着，构建决策树模型
     model_tree = DecisionTreeClassifier(criterion='gini', max_depth=3, min_samples_split=2,min_samples_leaf =2,max_features=2)
@@ -266,16 +281,41 @@ def draw_tree():
     graph.write_png("D:/out0416.png")
     print("D:/out0416.png")
 
+# 模型预测
+def make_predictions():
+    predictions = forest.predict(data_predict.drop(ID, axis=1))  # 删除ID字段
+    output = pd.DataFrame({'id': data_predict[ID], 'prediction': predictions})
+    output.to_csv(r'F:\ceshi2.csv')
+    output.head()
+    print("Congratulation!  Finish all steps")
+
 
 if __name__ == '__main__':
     # 获取数据
-    traindata_all = pd.read_csv("F:/data.csv")
+    data_train = pd.read_csv("F:/data.csv")
+    data_predict = pd.read_csv("F:/test.csv")
+    print(data_train.head())
+    print('-----------------------------------------')
+    print()
+    print(data_train.describe())
+    print()
 
-    # 将数据集分为训练集和测试集
-    X, y = traindata_all.iloc[:, 1:len(traindata_all.columns) - 1].values, traindata_all.iloc[:, len(traindata_all.columns) - 1].values     # 选择评价特征和标签特征
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+    # 特征因子
+    feature_column = [x for x in data_train.columns[1:len(data_train.columns) - 1]]
+    # ID
+    ID = data_train.columns[0]
+    # 标签因子
+    lable_column = data_train.columns[len(data_train.columns) - 1]
+    print('--- Data summary ---', '特征因子：' + str(feature_column), '标签因子：' + lable_column, sep='\n')
+    print()
 
-    # 打印评价特征和标签特征
+    # 删除ID字段和标签字段，只留训练数据
+    X = data_train.drop([lable_column, ID], axis=1)
+    y = data_train[lable_column]
+    p = 0.3  # 验证数据占比（参数）
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=p, random_state=23)
+
+    # 打印标签统计表
     print_featurelable()
 
     # 不同n_estimators取值对应误差大小
@@ -299,7 +339,8 @@ if __name__ == '__main__':
     # 画出决策树
     draw_tree()
 
-
+    # 模型预测
+    make_predictions()
 
 
 

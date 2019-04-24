@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 
 # 获取数据
 data_train = pd.read_csv("F:/data.csv")
-data_test = pd.read_csv("F:/test.csv")
+data_predict = pd.read_csv("F:/test.csv")
 print(data_train.head())
 print('......')
 print()
@@ -23,10 +23,10 @@ print(feature_column, lable_column, sep='\n')
 print()
 
 # 删除ID字段和标签字段，只留训练数据
-X_all = data_train.drop([lable_column, ID], axis=1)
-y_all = data_train[lable_column]
+X = data_train.drop([lable_column, ID], axis=1)
+y = data_train[lable_column]
 p = 0.3  # 验证数据占比（参数）
-X_train, X_test, y_train, y_test = train_test_split(X_all, y_all, test_size=p, random_state=23)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=p, random_state=23)
 
 
 # 选择分类器的类型
@@ -57,7 +57,7 @@ predictions = forest.predict(X_test)
 print(accuracy_score(y_test, predictions))
 
 # 模型预测
-predictions = forest.predict(data_test.drop(ID, axis=1))  # 删除ID字段
-output = pd.DataFrame({'id': data_test[ID], 'prediction': predictions})
+predictions = forest.predict(data_predict.drop(ID, axis=1))  # 删除ID字段
+output = pd.DataFrame({'id': data_predict[ID], 'prediction': predictions})
 output.to_csv(r'F:\ceshi2.csv')
 output.head()
