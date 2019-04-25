@@ -96,7 +96,7 @@ def findbest_n_estimators(max_trees_num):
             label='Real AdaBoost Train Error',
             color='green')
 
-    ax.set_ylim((0.23, 0.3))
+    ax.set_ylim((0.1, 0.5))
     ax.set_xlabel('n_estimators')
     ax.set_ylabel('error rate')
 
@@ -114,7 +114,7 @@ def findbest_maxfeatures():
     x_columns = data_train.columns[1:len(data_train.columns) - 1]
     for i in range(len(x_columns)):
         ensemble_clfs.append((i + 1,
-                              RandomForestClassifier(n_estimators=350,
+                              RandomForestClassifier(n_estimators=200,
                                                      warm_start=True, oob_score=True,
                                                      max_features=i + 1,
                                                      random_state=RANDOM_STATE)))
@@ -145,7 +145,7 @@ def build_model():
     forest = RandomForestClassifier()
     # 可以通过定义树的各种参数，限制树的大小，防止出现过拟合现象
     # 模型需要运行两次，第一次树的数量默认值为10，第二次根据可视化图输入最合适值。
-    parameters = {'n_estimators': [10, 100],
+    parameters = {'n_estimators': [10, 200],
                   'max_features': ['log2', 'sqrt', 'auto'],
                   'criterion': ['entropy', 'gini'],  # 分类标准用熵，基尼系数
                   'max_depth': [2, 3, 5, 10],
@@ -319,7 +319,7 @@ if __name__ == '__main__':
     print_featurelable()
 
     # 不同n_estimators取值对应误差大小
-    findbest_n_estimators(1000)
+    findbest_n_estimators(1500)
 
     # 不同max_features取值对应误差大小
     findbest_maxfeatures()
