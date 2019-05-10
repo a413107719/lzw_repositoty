@@ -96,7 +96,7 @@ def findbest_n_estimators(max_trees_num):
             label='Real AdaBoost Train Error',
             color='green')
 
-    ax.set_ylim((0.1, 0.5))
+    ax.set_ylim((0, 0.5))
     ax.set_xlabel('n_estimators')
     ax.set_ylabel('error rate')
 
@@ -145,12 +145,13 @@ def build_model():
     forest = RandomForestClassifier()
     # 可以通过定义树的各种参数，限制树的大小，防止出现过拟合现象
     # 模型需要运行两次，第一次树的数量默认值为10，第二次根据可视化图输入最合适值。
-    parameters = {'n_estimators': [10, 200],
+    parameters = {'n_estimators': [10,300,200],
                   'max_features': ['log2', 'sqrt', 'auto'],
                   'criterion': ['entropy', 'gini'],  # 分类标准用熵，基尼系数
                   'max_depth': [2, 3, 5, 10],
                   'min_samples_split': [2, 3, 5],
                   'min_samples_leaf': [1, 5, 8]
+
                   }
     # 以下是用于比较参数好坏的评分，使用'make_scorer'将'accuracy_score'转换为评分函数
     acc_scorer = make_scorer(accuracy_score)
