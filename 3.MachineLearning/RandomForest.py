@@ -310,7 +310,7 @@ if __name__ == '__main__':
     print('--- Data summary ---', '特征因子：' + str(feature_column), '标签因子：' + lable_column, sep='\n')
     print()
 
-    # 删除ID字段和标签字段，只留训练数据
+    # 删除ID字段和标签字段，只留训练数据。
     X = data_train.drop([lable_column, ID], axis=1)
     y = data_train[lable_column]
     p = 0.3  # 验证数据占比（参数）
