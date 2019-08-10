@@ -5,6 +5,7 @@ import requests
 import time
 import random
 import re
+import os
 
 
 def get_result(ybcode, page=1):  # 数据的请求
@@ -34,7 +35,7 @@ def dataclear(data):  # 数据的清理，除去文本中所有的\n和\r
     return data
 
 
-def filedata(ybcode):  # 下载知网的统计年鉴之类的所有excel表
+def filedata(ybcode, year):  # 下载知网的统计年鉴之类的所有excel表
     pageno = get_pageno(ybcode)
     for i in range(1, pageno + 1, 1):
         print('########################################当前第' + str(i) + '页###################################')
@@ -49,30 +50,38 @@ def filedata(ybcode):  # 下载知网的统计年鉴之类的所有excel表
                         title = str(BeautifulSoup(str(j), 'lxml').select('td:nth-of-type(1) > a')[0].get_text())
                         url = 'http://data.cnki.net' + BeautifulSoup(str(j), 'lxml').select('td:nth-of-type(3) > a')[1].get('href')
                         title = dataclear(title)  # 若不清洗数据，则文件名中会包含\n等特殊字符，导致文件下载错误
-                        filedown(title, url)
+                        filedown(title, url, year)
                         print(title)
                 except Exception as e:
                     print('error:-------------------' + str(e))
                     pass
 
 
-def filedown(title, url):  # 文件下载函数
+def filedown(title, url, year):  # 文件下载函数
     try:
         r = requests.get(url)
-        print('<<<<<<<')
-        print(r)
-        print(r.content)
-        print(">>>>>>>")
-        with open(title + ".xls", "wb") as code:
+        folder = "D:\\年鉴数据下载"
+        path = folder + '\\' + str(year)
+        if os.path.isdir(path):
+            pass
+        else:
+            os.makedirs(path)
+
+        with open(path + '\\' + title + ".xls", "wb") as code:
             code.write(r.content)
+            print(path + '\\' + title + ".xls")
     except Exception as e:
+        print("error")
         pass
     x = random.randint(3, 4)
     time.sleep(x)
 
 
 if __name__ == '__main__':
-    ybcode = 'N2016120543'  # 更改此项可下载其他年鉴
-    filedata(ybcode)
+    # 默认下载到D盘的“年鉴数据下载”文件夹中
+    targets = {2018: "N2019030122", 2017: "N2018050207", 2016:"N2017020368", 2015:"N2016120543", 2014:"N2016010176", 2013:"N2014050074", 2012:"N2013020020", 2011:"N2012040074"}
+    for target in targets:
+        year = target
+        yearcode = targets[year]
+        filedata(yearcode, year)
 
-# <a href="/Yearbook/Single/N2018050234">2017年</a>
