@@ -51,7 +51,6 @@ def filedata(ybcode, year):  # 下载知网的统计年鉴之类的所有excel�
                         url = 'http://data.cnki.net' + BeautifulSoup(str(j), 'lxml').select('td:nth-of-type(3) > a')[1].get('href')
                         title = dataclear(title)  # 若不清洗数据，则文件名中会包含\n等特殊字符，导致文件下载错误
                         filedown(title, url, year)
-                        print(title)
                 except Exception as e:
                     print('error:-------------------' + str(e))
                     pass
@@ -59,7 +58,10 @@ def filedata(ybcode, year):  # 下载知网的统计年鉴之类的所有excel�
 
 def filedown(title, url, year):  # 文件下载函数
     try:
+        print(title,url,year,sep=" ")
         r = requests.get(url)
+
+        # 创建文件夹
         folder = "D:\\年鉴数据下载"
         path = folder + '\\' + str(year)
         if os.path.isdir(path):
@@ -67,9 +69,14 @@ def filedown(title, url, year):  # 文件下载函数
         else:
             os.makedirs(path)
 
-        with open(path + '\\' + title + ".xls", "wb") as code:
+        # 下载数据
+        excelname = title + ".xls"
+        with open(excelname, "wb") as code:
             code.write(r.content)
-            print(path + '\\' + title + ".xls")
+            print(path + '\\' + title + ".xls" + ' 下载完成')
+
+
+
     except Exception as e:
         print("error")
         pass
