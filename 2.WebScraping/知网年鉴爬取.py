@@ -1,4 +1,6 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+# coding:utf-8
+from selenium import webdriver
 import urllib.request
 from bs4 import BeautifulSoup
 import requests
@@ -6,6 +8,7 @@ import time
 import random
 import re
 import os
+from retrying import retry
 
 
 def get_result(ybcode, page=1):  # 数据的请求
@@ -56,32 +59,57 @@ def filedata(ybcode, year):  # 下载知网的统计年鉴之类的所有excel�
                     pass
 
 
+# 让函数报错后继续重新执行，达到最大执行次数的上限后才判断链接失效，不再继续执行。
+@retry(stop_max_attempt_number=3)
 def filedown(title, url, year):  # 文件下载函数
     try:
-        print(title,url,year,sep=" ")
-        r = requests.get(url)
+        print(title, url, year,sep=" ")
 
         # 创建文件夹
-        folder = "D:\\年鉴数据下载"
-        path = folder + '\\' + str(year)
+        folder = "D:\\YearbookDownload"
+        path = folder + '\\' + str(year) + '\\'
         if os.path.isdir(path):
+            # print("已有路径：" + path)
             pass
         else:
             os.makedirs(path)
+            # print("成功创建：" + path)
 
-        # 下载数据
-        excelname = title + ".xls"
-        with open(excelname, "wb") as code:
-            code.write(r.content)
-            print(path + '\\' + title + ".xls" + ' 下载完成')
-
-
+        # 排除已经存在的表格
+        if os.path.exists(path + title+".xls"):
+            print("已经存在表格：" + title)
+        else:
+            # 设置Firefox参数
+            profile = webdriver.FirefoxProfile()
+            profile.set_preference('browser.download.dir', path)  # 现在文件存放的目录
+            profile.set_preference('browser.download.folderList', 2)
+            profile.set_preference('browser.download.manager.showWhenStarting', False)
+            profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/vnd.ms-excel")
+            # 下载excel
+            browser = webdriver.Firefox(firefox_profile=profile)
+            browser.get(url)
+            x = browser.find_element_by_id("Button2")
+            x.click()
+            sleeptime = random.randint(2, 3)
+            time.sleep(sleeptime)
+            # 重命名
+            codename = url.split("=")[1]
+            files = os.listdir(path)
+            for file in files:
+                if "-" in file:
+                    continue
+                x = file.split("N")[1].split(".")[0]
+                y = codename.split("N")[1]
+                if x == y:
+                    os.rename(path + file, path + title + ".xls")
+                    print("匹配到数据：" + title + '正在重命名。。。')
+                else:
+                    print("未匹配数据，应该不会发生")
+            browser.quit()
 
     except Exception as e:
         print("error")
         pass
-    x = random.randint(3, 4)
-    time.sleep(x)
 
 
 if __name__ == '__main__':
@@ -91,4 +119,5 @@ if __name__ == '__main__':
         year = target
         yearcode = targets[year]
         filedata(yearcode, year)
+        print("已经完成 " + str(year) + " 年数据的爬取")
 
