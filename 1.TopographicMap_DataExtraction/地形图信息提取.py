@@ -59,7 +59,7 @@ def dwg2gdb(cad_folder, gdb_path, muban_excel):
             fullpath = gdb_path + '\\' + shpfile
             arcpy.Delete_management(fullpath)  # 在GDB中删除数据
             print(shpfile + "： 由于数据为空，已在GDB中删除")
-    print("【" + "CAD数据入库已完成" '】' + "\n")
+    print("--------------------------CAD数据入库已完成------------------------", '\n')
 
 
 # 清理字段
@@ -94,7 +94,7 @@ def clean_data(gdbfeatures):
                             print('删除字段包括：' + str(delete_field_list))
                             arcpy.DeleteField_management(featurename, delete_field_list)
                         print('数据字段已清理', '\n')
-            print("--------------------------数据清理完成------------------------", '\n')
+    print("--------------------------数据清理完成------------------------", '\n')
 
 
 # 分类合并数据
@@ -116,6 +116,7 @@ def merge_kind_features(gdbfeatures):
         arcpy.env.workspace = gdb_path
         arcpy.Merge_management(dic[key], gdb_path + '\\' + 'merge' + key)
         print("Finish Merge：", key, dic[key])
+    print("--------------------------合并数据已完成------------------------", '\n')
 
 
 # 新建map + 添加数据 + 可视化
