@@ -16,8 +16,8 @@ def create_gdb(input_folder):
 
 
 # 提取点、线、面和注记数据
-# def dwg2gdb(input_folder, output_folder, muban_folder):
-def dwg2gdb(input_folder, output_folder, template_excel):
+# def dwg2gdb(input_folder, gdb_path, muban_folder):
+def dwg2gdb(input_folder, gdb_path, template_excel):
     # wb = openpyxl.load_workbook(muban_folder + '地形图提取模板.xlsx')
     wb = openpyxl.load_workbook(template_excel)
     os.chdir(input_folder)
@@ -33,7 +33,7 @@ def dwg2gdb(input_folder, output_folder, template_excel):
         for cad in cads:
             print('【正在从"' + cad + '"中提取' + feature_kind + '数据】')
             dwg_feature = input_folder + cad + "\\" + feature_kind
-            arcpy.env.workspace = output_folder
+            arcpy.env.workspace = gdb_path
             arcpy.env.overwriteOutput = True
             for name in range(2, max_row+1):
                 feature_name = sheet.cell(name, 1).value + '_' + cad.split('.')[0]
@@ -43,39 +43,61 @@ def dwg2gdb(input_folder, output_folder, template_excel):
                 else:
                     print('[' + feature_name + ']')
                     print(dwg_feature)
-                    print(output_folder)
+                    print(gdb_path)
                     print(feature_name)
                     print(selet_condition)
-                    arcpy.FeatureClassToFeatureClass_conversion(dwg_feature,
-                                                                output_folder, feature_name, selet_condition)
+                    arcpy.FeatureClassToFeatureClass_conversion(dwg_feature, gdb_path, feature_name, selet_condition)
                     print("成功在数据库中添加要素：" + feature_name + '\n')
             print('-----------------------' + '\n' + '【' + feature_kind + "数据已提取完成" + '】' + "\n")
 
     # 删除空数据
     print('【' + "正在删除空数据" + '】')
-    arcpy.env.workspace = output_folder
+    arcpy.env.workspace = gdb_path
     for shpfile in arcpy.ListFeatureClasses():
         rowcount = arcpy.GetCount_management(shpfile)
         print("数据名称： " + shpfile + "     数据量：" + str(rowcount))
         if int(str(rowcount)) == 0:
-            fullpath = output_folder + '\\' + shpfile
+            fullpath = gdb_path + '\\' + shpfile
             arcpy.Delete_management(fullpath)  # 在GDB中删除数据
             print(shpfile + "： 由于数据为空，已在GDB中删除")
     print("【" + "CAD数据入库已完成" '】' + "\n")
 
 
+def merge_kind_features(gdb_path):
+    arcpy.env.workspace = gdb_path
+    gdbfeatures = arcpy.ListFeatureClasses()
+    print(gdbfeatures)
+
+    # 得到所有类型名称
+    dic = {}
+    for num, name in enumerate(gdbfeatures):
+        kindname = name.split('_')[0]
+        if kindname not in dic.keys():
+            dic[kindname] = []
+        dic[kindname].append(name)
+    for i in dic.keys():
+        print(i, dic[i])
+
+    for key in dic.keys():
+        dic[key].reverse()
+        arcpy.env.workspace = gdb_path
+        arcpy.Merge_management(dic[key], gdb_path + '\\' + 'merge' + key)
+        print("Finish Merge：", key, dic[key])
+
+
 # 新建map + 添加数据 + 可视化
-def data_visualization(input_folder, output_folder, template_excel, template_file):
+def data_visualization(input_folder, gdb_path, template_excel, template_file):
     pro_aprx = arcpy.mp.ArcGISProject(template_file)
 
     # 在map中添加数据
     print('【' + '开始在map中添加数据' + '】')
     data_map = pro_aprx.listMaps("Map")[0]
-    arcpy.env.workspace = output_folder
+    arcpy.env.workspace = gdb_path
     for feature_name in arcpy.ListFeatureClasses():
-        feature_location = output_folder + "\\" + feature_name
-        data_map.addDataFromPath(feature_location)
-        print("成功添加数据: " + feature_name)
+        if feature_name.split("ge")[0] == "mer":
+            feature_location = gdb_path + "\\" + feature_name
+            data_map.addDataFromPath(feature_location)
+            print("成功添加数据: " + feature_name)
     print('【' + "数据添加完成" + '】' + '\n')
     data_layers = data_map.listLayers()
 
@@ -91,7 +113,7 @@ def data_visualization(input_folder, output_folder, template_excel, template_fil
             row_name = sheet.cell(row_num, 1).value
             for layer in data_layers:
                 layer_name = str(layer)
-                if layer_name.split('_')[0] == row_name:           # 根据excel表在GDB中选择相应的数据做符号化和标注设置
+                if layer_name.split('ge')[1] == row_name:           # 根据excel表在GDB中选择相应的数据做符号化和标注设置
                     print('[' + '开始设置 "' + layer_name + '" 的符号和标注样式' + ']')
                     sheet_contain_field = sheet.cell(row_num, 3).value       # 保留字段
                     sheet_lable_size = sheet.cell(row_num, 4).value          # 设置size
@@ -166,52 +188,15 @@ def data_visualization(input_folder, output_folder, template_excel, template_fil
     del pro_aprx
 
 
-# 身份验证
-def compare_pcinfo():
-    pc_list = [['zlk', '74:D0:2B:9E:4A:0A', '192.168.3.253'], ['zmlpc', '9C:5C:8E:C1:E9:4B', '192.168.3.243'],
-               ['ltpc', '30:5A:3A:78:C9:F6', '192.168.3.251'], ['lxpc', '30:5A:3A:82:09:A6', '192.168.3.14'],
-               ['lxpc', '30:B4:9E:54:EF:C8', '192.168.3.157'],
-               ['30-B4-9E-54-EE-83', '30-B4-9E-54-EE-83', '192.168.3.177'],
-               ['00-11-22-CA-DE-1C', '00:11:22:CA:DE:1C', '192.168.3.242'],
-               ['server', '14:18:77:3A:C6:90', '192.168.3.16'],
-               ['sylvia', 'E0:3F:49:A6:CA:80', '192.168.3.215'],
-               ['2013-20170325NM', '30:B4:9E:54:EF:89', '192.168.3.232'],
-               ['2013-20170325NM', '2013-20170325NM', '192.168.3.226'],
-               ['christine', '10:BF:48:B9:E2:23', '192.168.3.252'],
-               ['jnPC', '14:DA:E9:C7:59:9E', '192.168.3.250'], ['研究中心电脑', '3c:f8:62:eb:8d:08', '192.168.199.160']]
-    print('【此电脑的基础信息包括：】')
-    mac = uuid.UUID(int=uuid.getnode()).hex[-12:]
-    mac_address = ":".join([mac[e:e+2] for e in range(0, 11, 2)])
-    hostname = socket.gethostname()
-    result = socket.getaddrinfo(hostname, None, 0, socket.SOCK_STREAM)
-    ip_address = [x[4][0] for x in result][1]
-    print('主机名：' + hostname)
-    print('IP地址：' + ip_address)
-    print('mac地址：' + mac_address)
-    for row in pc_list:
-        if row[1] == mac_address and row[2] == ip_address:
-            print("身份验证通过！" + '\n')
-            return 'yes'
-    print('ZK工作室版权所有，如需使用请联系：lzw19910@qq.com')
-
-
 if __name__ == '__main__':
-    # 身份验证
-    if compare_pcinfo() == 'yes':
-        pass
-    else:
-        exit()
-
     # 数据位置
     cad_folder = 'F:\\测试数据\\地形图信息提取\\'
-    template_excel = 'F:\\测试数据\\模板\\地形图提取模板.xlsx'
-    template_file = 'F:\\测试数据\\模板\\模板.aprx'
-    output = cad_folder + "ProjectGDB.gdb"
+    template_excel = 'F:\\测试数据\\地形图信息提取\\模板\\地形图提取模板.xlsx'
+    template_file = 'F:\\测试数据\\地形图信息提取\\模板\\模板.aprx'
+    gdbpath = cad_folder + "ProjectGDB.gdb"
 
-    arcpy.env.workspace = cad_folder
-    # 新建一个output数据库
-    create_gdb(cad_folder)
-    # 找到所有dwg文件，并提取信息到数据库
-    dwg2gdb(cad_folder, output, template_excel)
-    # 新建aprx工程文件，新建map，数据可视化
-    data_visualization(cad_folder, output, template_excel, template_file)
+    arcpy.env.workspace = cad_folder  # 新建一个gdbpath数据库
+    create_gdb(cad_folder)  # 找到所有dwg文件，并提取信息到数据库
+    dwg2gdb(cad_folder, gdbpath, template_excel)
+    merge_kind_features(gdbpath)  # 新建aprx工程文件，新建map，数据可视化
+    data_visualization(cad_folder, gdbpath, template_excel, template_file)
