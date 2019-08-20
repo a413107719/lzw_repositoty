@@ -7,20 +7,19 @@ import uuid
 
 
 # 新建一个output数据库
-def create_gdb(input_folder):
+def create_gdb(cad_folder):
     if arcpy.Exists("ProjectGDB.gdb"):
         print('ProjectGDB.gdb数据库已存在,将直接把数据写入数据库')
     else:
-        arcpy.CreateFileGDB_management(input_folder, "ProjectGDB.gdb")
+        arcpy.CreateFileGDB_management(cad_folder, "ProjectGDB.gdb")
         print("成功创建ProjectGDB.gdb数据库")
 
 
 # 提取点、线、面和注记数据
-# def dwg2gdb(input_folder, gdb_path, muban_folder):
-def dwg2gdb(input_folder, gdb_path, template_excel):
+def dwg2gdb(cad_folder, gdb_path, muban_excel):
     # wb = openpyxl.load_workbook(muban_folder + '地形图提取模板.xlsx')
-    wb = openpyxl.load_workbook(template_excel)
-    os.chdir(input_folder)
+    wb = openpyxl.load_workbook(muban_excel)
+    os.chdir(cad_folder)
     cads = arcpy.ListFiles("*.dwg")
     print('文件夹中存在CAD数据：' + str(cads) + '\n')
 
@@ -32,7 +31,7 @@ def dwg2gdb(input_folder, gdb_path, template_excel):
         print("共有" + str(max_row - 1) + "条" + feature_kind + "数据将会被提取出来")
         for cad in cads:
             print('【正在从"' + cad + '"中提取' + feature_kind + '数据】')
-            dwg_feature = input_folder + cad + "\\" + feature_kind
+            dwg_feature = cad_folder + cad + "\\" + feature_kind
             arcpy.env.workspace = gdb_path
             arcpy.env.overwriteOutput = True
             for name in range(2, max_row+1):
@@ -63,12 +62,44 @@ def dwg2gdb(input_folder, gdb_path, template_excel):
     print("【" + "CAD数据入库已完成" '】' + "\n")
 
 
-def merge_kind_features(gdb_path):
-    arcpy.env.workspace = gdb_path
-    gdbfeatures = arcpy.ListFeatureClasses()
-    print(gdbfeatures)
+# 清理字段
+def clean_data(gdbfeatures):
+    wb = openpyxl.load_workbook(muban_excel)
+    feature_kinds = ['Point', 'Polyline', 'Polygon', 'Annotation']
+    for feature_kind in feature_kinds:
+        sheet = wb[feature_kind]
+        max_row = sheet.max_row
+        for row_num in range(2, max_row + 1):
+            row_name = sheet.cell(row_num, 1).value
+            contain_field = sheet.cell(row_num, 3).value  # 保留字段
 
-    # 得到所有类型名称
+            for num, featurename in enumerate(gdbfeatures):
+                if featurename.split('_')[0] == row_name:
+                    print('[' + '开始清理： "' + featurename + ']')
+                    # 清理数据字段
+                    if contain_field == ' ' or contain_field is None:
+                        print('数据字段未清理')
+                    else:
+                        remain_field_list = contain_field.split(',') + ['OBJECTID', 'Shape', 'Shape_Length',
+                                                                        'Shape_area']
+                        print("需要保留的字段包括：" + str(remain_field_list))
+                        # 生成字段名列表
+                        original_field_list = [f.name for f in arcpy.ListFields(featurename)]
+                        print('数据原始字段包括：' + str(original_field_list))
+                        for i in remain_field_list:
+                            if i in original_field_list:
+                                original_field_list.remove(i)
+                        delete_field_list = original_field_list
+                        if len(delete_field_list) != 0:
+                            print('删除字段包括：' + str(delete_field_list))
+                            arcpy.DeleteField_management(featurename, delete_field_list)
+                        print('数据字段已清理', '\n')
+            print("--------------------------数据清理完成------------------------", '\n')
+
+
+# 分类合并数据
+def merge_kind_features(gdbfeatures):
+    # 分类数据
     dic = {}
     for num, name in enumerate(gdbfeatures):
         kindname = name.split('_')[0]
@@ -77,7 +108,9 @@ def merge_kind_features(gdb_path):
         dic[kindname].append(name)
     for i in dic.keys():
         print(i, dic[i])
+    print('分类完毕。。。。', '\n', '\n')
 
+    # 合并数据
     for key in dic.keys():
         dic[key].reverse()
         arcpy.env.workspace = gdb_path
@@ -86,8 +119,8 @@ def merge_kind_features(gdb_path):
 
 
 # 新建map + 添加数据 + 可视化
-def data_visualization(input_folder, gdb_path, template_excel, template_file):
-    pro_aprx = arcpy.mp.ArcGISProject(template_file)
+def data_visualization(cad_folder, gdb_path, muban_excel, muban_aprx):
+    pro_aprx = arcpy.mp.ArcGISProject(muban_aprx)
 
     # 在map中添加数据
     print('【' + '开始在map中添加数据' + '】')
@@ -103,48 +136,24 @@ def data_visualization(input_folder, gdb_path, template_excel, template_file):
 
     # 设置数据样式
     print('【' + '开始设置符号样式' + '】')
-    wb = openpyxl.load_workbook(template_excel)
-    os.chdir(input_folder)
+    wb = openpyxl.load_workbook(muban_excel)
+    os.chdir(cad_folder)
     feature_kinds = ['Point', 'Polyline', 'Polygon', 'Annotation']
     for feature_kind in feature_kinds:
         sheet = wb[feature_kind]
         max_row = sheet.max_row
-        for row_num in range(2, max_row+1):
+        for row_num in range(2, max_row + 1):
             row_name = sheet.cell(row_num, 1).value
             for layer in data_layers:
                 layer_name = str(layer)
-                if layer_name.split('ge')[1] == row_name:           # 根据excel表在GDB中选择相应的数据做符号化和标注设置
+                if layer_name.split('ge')[1] == row_name:  # 根据excel表在GDB中选择相应的数据做符号化和标注设置
                     print('[' + '开始设置 "' + layer_name + '" 的符号和标注样式' + ']')
-                    sheet_contain_field = sheet.cell(row_num, 3).value       # 保留字段
-                    sheet_lable_size = sheet.cell(row_num, 4).value          # 设置size
-                    sheet_color_way = sheet.cell(row_num, 5).value           # 渲染方式
-                    sheet_color_field = sheet.cell(row_num, 6).value         # 渲染字段
-                    sheet_color_ramp = sheet.cell(row_num, 7).value          # 色带和符号库样式
-                    lable_ornot = sheet.cell(row_num, 8).value               # 标注与否
-                    lable_field = sheet.cell(row_num, 9).value               # 标注字段
-
-                    # 清理数据字段
-                    if sheet_contain_field == ' ' or sheet_contain_field is None:
-                        print('数据字段未清理')
-                    else:
-                        remain_field_list = sheet_contain_field.split(',') + ['OBJECTID', 'Shape',
-                                                                              'Shape_Length', 'Shape_area']
-                        print("保留字段" + str(remain_field_list))
-                        # 生成字段名列表
-                        original_field_list = [f.name for f in arcpy.ListFields(layer)]
-                        print('数据原始字段包括：' + str(original_field_list))
-                        for i in remain_field_list:
-                            if i in original_field_list:
-                                original_field_list.remove(i)
-                            else:
-                                pass
-                        delete_field_list = original_field_list
-                        if len(delete_field_list) != 0:
-                            print('删除字段包括：' + str(delete_field_list))
-                            arcpy.DeleteField_management(layer, delete_field_list)
-                        else:
-                            pass
-                        print('数据字段已清理')
+                    sheet_lable_size = sheet.cell(row_num, 4).value  # 设置size
+                    sheet_color_way = sheet.cell(row_num, 5).value  # 渲染方式
+                    sheet_color_field = sheet.cell(row_num, 6).value  # 渲染字段
+                    sheet_color_ramp = sheet.cell(row_num, 7).value  # 色带和符号库样式
+                    lable_ornot = sheet.cell(row_num, 8).value  # 标注与否
+                    lable_field = sheet.cell(row_num, 9).value  # 标注字段
 
                     # 设置符号
                     sym = layer.symbology
@@ -174,29 +183,36 @@ def data_visualization(input_folder, gdb_path, template_excel, template_file):
                             print("图层标注已打开" + '\n')
                         else:
                             print("图层标注未设置" + '\n')
-                    else:
-                        pass
-                else:
-                    pass
     print('【' + '符号样式设置已完成' + '】' + '\n')
 
     # 另存为新的项目文件
     time_text = time.strftime('%Y%m%d_%H%M', time.localtime(time.time()))
     file_name = "地形图信息提取" + time_text + ".aprx"
-    pro_aprx.saveACopy(input_folder + file_name)
+    pro_aprx.saveACopy(cad_folder + file_name)
     print('地形图信息提取完成，并已另存为aprx文件：' + file_name)
     del pro_aprx
 
 
-if __name__ == '__main__':
-    # 数据位置
-    cad_folder = 'F:\\测试数据\\地形图信息提取\\'
-    template_excel = 'F:\\测试数据\\地形图信息提取\\模板\\地形图提取模板.xlsx'
-    template_file = 'F:\\测试数据\\地形图信息提取\\模板\\模板.aprx'
-    gdbpath = cad_folder + "ProjectGDB.gdb"
+def main_function():
+    arcpy.env.workspace = cadfolder
+    create_gdb(cadfolder)  # 新建一个gdbpath数据库
+    dwg2gdb(cadfolder, gdb_path, muban_excel)  # 找到所有dwg文件，并提取信息到数据库
+    arcpy.env.workspace = gdb_path
+    gdb_features = arcpy.ListFeatureClasses()
+    print(gdb_features)
+    clean_data(gdb_features)
+    merge_kind_features(gdb_features)
+    data_visualization(cadfolder, gdb_path, muban_excel, muban_aprx)   # 新建aprx工程文件，新建map，数据可视化
 
-    arcpy.env.workspace = cad_folder  # 新建一个gdbpath数据库
-    create_gdb(cad_folder)  # 找到所有dwg文件，并提取信息到数据库
-    dwg2gdb(cad_folder, gdbpath, template_excel)
-    merge_kind_features(gdbpath)  # 新建aprx工程文件，新建map，数据可视化
-    data_visualization(cad_folder, gdbpath, template_excel, template_file)
+
+if __name__ == '__main__':
+    gdb_path = 'F:\\测试数据\\地形图信息提取\\ProjectGDB.gdb'
+    cadfolder = 'F:\\测试数据\\地形图信息提取\\'
+    muban_excel = 'F:\\测试数据\\地形图信息提取\\模板\\地形图提取模板.xlsx'
+    muban_aprx = 'F:\\测试数据\\地形图信息提取\\模板\\模板.aprx'
+
+    main_function()
+
+
+
+
