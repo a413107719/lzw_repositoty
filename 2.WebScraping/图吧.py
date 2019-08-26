@@ -4,16 +4,15 @@ from retrying import retry
 import random
 
 
-# 匹配需要爬取的数据类
+# 从模板excel提取需要爬取的数据类
 def get_kindscrapt():
     wb = openpyxl.load_workbook("D:\\tuba\\tubascriptlist.xlsx")
-    sheetname = wb.sheetnames[0]  # 直接取第一张表，因为年鉴每个excel只有一张表。
+    sheetname = wb.sheetnames[0]
     sheet = wb.get_sheet_by_name(sheetname)
     maxrow = sheet.max_row
-    list=[]
-    for i in range(1, maxrow+1):
+    list = []
+    for i in range(1, maxrow + 1):
         cellvalue = sheet.cell(i, 2).value
-        # print(cellvalue)
         if cellvalue == '':
             break
         else:
@@ -21,45 +20,57 @@ def get_kindscrapt():
     return list
 
 
-# 找到各类型链接
-def kinds_data(point_url):
-    web_data = requests.get(point_url,proxies=proxies)
-    soup = BeautifulSoup(web_data.text, 'lxml')
-    selects = soup.select('body > div.sort.cl > div > div > a')
-    print(selects)
-    kind_names = []
-    kind_urls = []
-    scraptlist = get_kindscrapt()
-    print(scraptlist)
+# 找到需要爬取的数据大类名称和链接
+@retry(stop_max_attempt_number=3)
+def kinds_data(mainurl):
+    global proxies
+    try:
+        # 找到目标页面所有分类名称和地址
+        web_data = requests.get(mainurl, proxies=proxies)
+        soup = BeautifulSoup(web_data.text, 'lxml')
+        selects = soup.select('body > div.sort.cl > div > div > a')
+        kind_names = []
+        kind_urls = []
+        for i in selects:
+            kind_names.append(i.getText())
+            kind_urls.append(i.get("href"))
 
-    for i in selects:
-        kind_names.append(i.getText())
-        kind_urls.append(i.get("href"))
-    for kind_name, kind_url in zip(kind_names, kind_urls):
-        # print('\n', '<<', kind_name, kind_url, '>>')
-        if kind_name in scraptlist:
-            # 先判断excel里是否有这类数据，如果存在则跳过
-            create_excel()
-            wb = openpyxl.load_workbook(excelpath)
-            if kind_name in wb.get_sheet_names():
-                print(kind_name + "：已经存在,将爬取下一个分类")
-            else:
-                print('需要爬取：' + kind_name)
-                print()
-                # features_imformation = get_allpoints_namelink(kind_url, kind_name)  # 得到一个类所有点的信息
-                namelist, linklist = get_allpoints_namelink(kind_url)  # 得到一个类所有点的信息
-                kinds_all_list = get_pointimformation(namelist, linklist, kind_name)
+        # 从模板excel提取需要爬取的数据类
+        scraptlist = get_kindscrapt()
+        # print(scraptlist)
 
-                # 写入Excel
-                write2excel(kind_name, kinds_all_list)
+        kinds_exist = []
+        kinds_willscrapt_name = []
+        kinds_willscrapt_url = []
+        for kind_name, kind_url in zip(kind_names, kind_urls):
+            if kind_name in scraptlist:
+                # 先判断excel里是否有这类数据，如果存在则跳过
+                create_excel()
+                wb = openpyxl.load_workbook(excelpath)
+                if kind_name in wb.get_sheet_names():  # 已经存在
+                    kinds_exist.append(kind_name)
+                else:
+                    kinds_willscrapt_name.append(kind_name)
+                    kinds_willscrapt_url.append(kind_url)
+        print('已经存在：' + str(kinds_exist))
+        print('需要爬取：' + str(kinds_willscrapt_name))
+        return kinds_willscrapt_name, kinds_willscrapt_url
+
+    except Exception as e:
+        print(e, mainurl)
+        print("kinds_data出错，重新请求")
+        time.sleep(5)
+        proxies = get_proxies()
+        kinds_data(mainurl)
 
 
 # 得到一个类所有点的链接
-def get_allpoints_namelink(kinds_url):
+@retry(stop_max_attempt_number=3)
+def kind_allpoints_data(kinds_url):
     global proxies
     try:
-        web_data = requests.get(kinds_url,proxies=proxies)
-        soup = BeautifulSoup(web_data.text,'lxml')
+        web_data = requests.get(kinds_url, proxies=proxies)
+        soup = BeautifulSoup(web_data.text, 'lxml')
         selects = soup.select('div.sort.cl > div.sortC > dl > dd > a')
         # print(selects)
 
@@ -72,25 +83,20 @@ def get_allpoints_namelink(kinds_url):
         print(e, kinds_url)
         print("get_allpoints_namelink出错，重新请求")
         time.sleep(5)
-        proxies = get_proxies(get_ip_list()[0])
+        proxies = get_proxies()
         time.sleep(3)
-        get_allpoints_namelink(kinds_url)
+        kind_allpoints_data(kinds_url)
 
 
 # 找到所有点的信息
 def get_pointimformation(namelist, linklist, kind_name):
-    print("重新验证代理是否成功：")
+    global kinds_all_list
+    print('\n' + "重新验证代理是否成功：")
     print(proxies)
     kinds_all_list = []
     count = 0
-    for name, pointlink in zip(namelist, linklist):
-        # print( name, pointlink)
-        if point_data(pointlink) is None:
-            print("将不填入信息")
-        else:
-            province, city, lattitude, longitude = point_data(pointlink)  # 找到每个点的具体信息
-            print(name, kind_name, province, city, lattitude, longitude, pointlink)
-            kinds_all_list.append([name, kind_name, province, city, lattitude, longitude])
+    for name, pointurl in zip(namelist, linklist):
+        point_data(name, pointurl, kind_name)
 
         count += 1
         if count == 10:
@@ -102,28 +108,28 @@ def get_pointimformation(namelist, linklist, kind_name):
 
 
 # 找到每个点的具体信息
-def point_data(point_url):
+@retry(stop_max_attempt_number=3)
+def point_data(name, point_url, kind_name):
     global proxies
     try:
-        web_data = requests.get(point_url,proxies=proxies)
-        soup = BeautifulSoup(web_data.text,'lxml')
+        web_data = requests.get(point_url, proxies=proxies)
+        soup = BeautifulSoup(web_data.text, 'lxml')
         names = soup.find_all('meta')
-        text = names[2].get('content')       #province=四川;city=自贡;coord=104.76247,29.37363
+        text = names[2].get('content')  # province=四川;city=自贡;coord=104.76247,29.37363
         textregex = re.compile(r'province=(\S\S);city=(\S\S);coord=(\d+\W\d+),(\d+\W\d+)')
         mo = textregex.search(text)
         if mo is not None:
             province, city, lattitude, longitude = mo.groups()
-            return province, city, lattitude, longitude
+            kinds_all_list.append([name, kind_name, province, city, lattitude, longitude])
+            print(str(len(kinds_all_list)) + ':' + str([name, kind_name, province, city, lattitude, longitude]))
         else:
             print("此链接没信息：" + point_url)
-            return None
 
     except Exception as e:
         print(e, point_url)
         print("point_data出错，重新请求")
         time.sleep(5)
-        proxies = get_proxies(get_ip_list()[0])
-        time.sleep(3)
+        proxies = get_proxies()
         point_data(point_url)
 
 
@@ -144,7 +150,7 @@ def create_excel():
 
 
 # 写入Excel
-def write2excel(kindname, featuresimformation):
+def write2excel(kindname, allpoints_information):
     wb = openpyxl.load_workbook(excelpath)
     wb.create_sheet(kindname)
     sheet = wb[kindname]  # 选择一个excel页面
@@ -156,45 +162,56 @@ def write2excel(kindname, featuresimformation):
     sheet.cell(row=1, column=5).value = "经度"
     sheet.cell(row=1, column=6).value = "纬度"
 
-    for row in range(2, len(featuresimformation)+2):
-        sheet.cell(row=row, column=1).value = featuresimformation[row-2][0]
-        sheet.cell(row=row, column=2).value = featuresimformation[row-2][1]
-        sheet.cell(row=row, column=3).value = featuresimformation[row-2][2]
-        sheet.cell(row=row, column=4).value = featuresimformation[row-2][3]
-        sheet.cell(row=row, column=5).value = featuresimformation[row-2][4]
-        sheet.cell(row=row, column=6).value = featuresimformation[row-2][5]
+    for row in range(2, len(allpoints_information) + 2):
+        sheet.cell(row=row, column=1).value = allpoints_information[row - 2][0]
+        sheet.cell(row=row, column=2).value = allpoints_information[row - 2][1]
+        sheet.cell(row=row, column=3).value = allpoints_information[row - 2][2]
+        sheet.cell(row=row, column=4).value = allpoints_information[row - 2][3]
+        sheet.cell(row=row, column=5).value = allpoints_information[row - 2][4]
+        sheet.cell(row=row, column=6).value = allpoints_information[row - 2][5]
     wb.save(excelpath)
     print('已经下载数据')
 
 
-# 获取代理列表
-def get_ip_list():
-    print("正在获取代理列表...")
-    url="http://http.tiqu.alicdns.com/getip3?num=1&type=3&pro=&city=0&yys=0&port=1&time=1&ts=0&ys=0&cs=0&lb=2&sb=0&pb=4&mr=1&regions=" #从代理网站上获取的url
+# 获取代理IP，并合成一个proxise
+def get_proxies():
+    url = "http://http.tiqu.alicdns.com/getip3?num=1&type=3&pro=&city=0&yys=0&port=1&time=1&ts=0&ys=0&cs=0&lb=2&sb=0&pb=4&mr=1&regions="  # 从代理网站上获取的url
     page = requests.get(url)
     iplist = page.text
     ip_list = iplist.split('</br>')
     # print(len(ip_list)-1)
-    if len(ip_list)==1:
-        print("ip获取失败")
-    print("代理列表抓取成功: "+str(iplist))
-    return ip_list[:-1]
+    if len(ip_list) == 1:
+        print("代理列表抓取失败！")
+    print("代理列表抓取成功: " + str(iplist))
+    ip = ip_list[:-1][0]
 
-
-# 格式化ip，获取一个proxise
-def get_proxies(ip):
     proxy_ip = 'http://' + ip
     proxies = {'http': proxy_ip}
-    # print('已经成功重新获取代理ip')
+    print(proxies)
     return proxies
 
 
-if __name__ == '__main__':
+def main():
+    global quelist, proxies
     quelist = []
-    proxies = get_proxies(get_ip_list()[0])
-    print(proxies)
+    proxies = get_proxies()
+    kindscraptname, kindscrapturl = kinds_data(main_url)  # 找到需要爬取的数据大类名称和链接
+    for i in range(len(kindscraptname)):
+        kindname = kindscraptname[i]
+        kindurl = kindscrapturl[i]
+        # 找到每一个类的所有点的名称和链接
+        try:
+            kind_allpoints_name, kind_allpoints_url = kind_allpoints_data(kindurl)
+        except Exception as e:
+            print(e)
+            main()
+        kind_allpoints_information = get_pointimformation(kind_allpoints_name, kind_allpoints_url, kindname)
+        # 写入excel
+        write2excel(kindname, kind_allpoints_information)
+
+
+if __name__ == '__main__':
     main_url = 'http://poi.mapbar.com/liuzhou/'
     output_path = 'D:\\tuba\\'
     excelpath = output_path + 'tuban.xlsx'
-    kinds_data(main_url)
-
+    main()
