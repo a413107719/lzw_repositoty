@@ -63,7 +63,7 @@ def filedata(ybcode, year):  # 下载知网的统计年鉴之类的所有excel�
 @retry(stop_max_attempt_number=3)
 def filedown(title, url, year):  # 文件下载函数
     try:
-        print(title, url, year,sep=" ")
+        print(title, url, year, sep=" ")
 
         # 创建文件夹
         folder = "D:\\YearbookDownload"
@@ -76,6 +76,8 @@ def filedown(title, url, year):  # 文件下载函数
             # print("成功创建：" + path)
 
         # 排除已经存在的表格
+        if "—" in title:
+            title = title.replace("—", "-")
         if os.path.exists(path + title+".xls"):
             print("已经存在表格：" + title)
         else:
@@ -96,7 +98,7 @@ def filedown(title, url, year):  # 文件下载函数
             codename = url.split("=")[1]
             files = os.listdir(path)
             for file in files:
-                if "-" in file:
+                if "-" in file or "_" not in file:
                     continue
                 x = file.split("N")[1].split(".")[0]
                 y = codename.split("N")[1]
@@ -114,7 +116,12 @@ def filedown(title, url, year):  # 文件下载函数
 
 if __name__ == '__main__':
     # 默认下载到D盘的“年鉴数据下载”文件夹中
-    targets = {2018: "N2019030122", 2017: "N2018050207", 2016:"N2017020368", 2015:"N2016120543", 2014:"N2016010176", 2013:"N2014050074", 2012:"N2013020020", 2011:"N2012040074"}
+    targets = {
+        'GuangXi2018': "N2018110018", 'GuangXi2017': "N2017120295", 'GuangXi2016': "N2017020374", 'GuangXi2015': "N2016010072", 'GuangXi2014': "N2014120093", 'GuangXi2013': "N2013110048",
+        'GuiLin2018': "N2019030108", 'GuiLin2017': "N2018050237", 'GuiLin2015': "N2016120526", 'GuiLin2016': "N2017060049", 'GuiLin2014': "N2015040003", 'GuiLin2013':"N2014050092",
+        'GuiZou2018': "N2019010158", 'GuiZou2017': "N2017120264", 'GuiZou2015': "N2016010122", 'GuiZou2016': "N2017020211", 'GuiZou2014': "N2014120128", 'GuiZou2013': "N2013120102",
+        'HuNan2018': "N2019040070", 'HuNan2017': "N2018050230", 'HuNan2015': "N2016010070", 'HuNan2016': "N2017020284", 'HuNan2014': "N2014120095", 'HuNan2013': "N2013120093"
+    }
     for target in targets:
         year = target
         yearcode = targets[year]
