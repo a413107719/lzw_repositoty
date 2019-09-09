@@ -270,8 +270,8 @@ def createnewsheet(field, valuelist):
 
 
 if __name__ == '__main__':
-    input_path = 'F:\\年鉴自动处理测试数据'
-    outputfolder = 'F:\\test年鉴数据清理\\tempt\\'
+    input_path = 'D:\\YearbookDownload'
+    outputfolder = 'D:\\yearbookoutput'
 
     # 获取所有年鉴excel表格并建立结果文件夹
     excels = get_all_excels()
