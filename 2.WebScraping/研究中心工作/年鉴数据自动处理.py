@@ -225,7 +225,7 @@ def getheadandvalue():
             rowlist.append(value1)
         valuelist.append(rowlist)
 
-    # 删除最后的备注行
+     # 删除最后的备注行
     i = 0
     while i + 1:
         num = 0
@@ -247,8 +247,8 @@ def getheadandvalue():
 
 def newtable_visualise(field, valuelist,columnname_merge):
     table = PrettyTable(field)
-    for i in range(len(columnname_merge)):
-        print(i, str(valuelist[i]))
+    for i in range(len(valuelist)):
+        # print(i, str(valuelist[i]))
         table.add_row(valuelist[i])
     print(table)
     print()
@@ -285,7 +285,7 @@ def createnewsheet(field, valuelist):
 
 if __name__ == '__main__':
     input_path = 'F:\\测试数据\\年鉴自动清理表头\\测试数据'
-    outputfolder = 'F:\\测试数据\\年鉴自动清理表头\\output\\1'
+    outputfolder = 'F:\\测试数据\\年鉴自动清理表头\\output\\'
 
     # 获取所有年鉴excel表格并建立结果文件夹
     excels = get_all_excels()
@@ -309,7 +309,6 @@ if __name__ == '__main__':
 
         # 提取表头和数据
         fieldname, sheetvalue = getheadandvalue()
-        print(fieldname)
 
         # 可视化表格
         newtable_visualise(fieldname, sheetvalue,fieldname)
