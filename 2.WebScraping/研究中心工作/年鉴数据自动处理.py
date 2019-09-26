@@ -9,7 +9,7 @@ import shutil
 from shutil import copy2
 
 
-def get_all_excels():
+def get_all_excels(input_path, outputfolder):
     # 创建输出路径
     if os.path.isdir(outputfolder):
         shutil.rmtree(outputfolder)
@@ -61,42 +61,67 @@ def data_standarize():
                 string = string.replace(" ", "")
                 string = string.replace("　", "")
                 sheet.cell(i, y).value = string
-    print("已完成数据清洗")
+    print("已完成特殊字符清洗")
     wb.save(excel)
+
 
 # 提取数值第一行
 def find_firstvalue_row():
+    firstvaluerow = 0
     for row in range(1, maxrow):
         float_num = 0
         nonevalue_num = 0
+        columnvalue_list=[]
         for column in range(1, maxcolumn + 1):
             s = sheet.cell(row, column).value
-            # print(s, type(s), sep=',')
+            columnvalue_list.append(s)
+        while True:
+            if columnvalue_list[-1] is None:
+                del columnvalue_list[-1]
+            else:
+                break
+        # print(columnvalue_list)
+        for s in columnvalue_list:
             if type(s) == float or type(s) == int:
                 float_num += 1
             elif s is None:
                 nonevalue_num += 1
-        # print(float_num, nonevalue_num,sep=',')
-        # 打印小数占行内所有飞空数据的比例
-        if maxcolumn - nonevalue_num > 3:
-            float_proportion = float_num / (maxcolumn - nonevalue_num)
-            # print(float_proportion)
-            if float_proportion >= 0.5:
+        # 打印小数占行内所有非空数据的比例
+        # print(maxcolumn,nonevalue_num)
+        if maxcolumn - nonevalue_num >= 3:
+            float_proportion = float_num / (len(columnvalue_list) - nonevalue_num)
+            # print(row, maxcolumn, float_num, nonevalue_num,float_proportion)
+            if float_proportion >= 0.2:
                 firstvaluerow = row
                 break
     return firstvaluerow
 
 
-def getfirstheadrow(firstvaluerow):
+def getfirstheadrow(firstvalue_row):
     firstheadrow = 0
     unit1 = 0
-    for i in range(2, firstvaluerow):
+    for i in range(2, firstvalue_row):
         for y in range(1, maxcolumn):
             value = sheet.cell(i, y).value
+            # 排除字段名称为"单位"
+            list = [value, sheet.cell(i, y + 1).value, sheet.cell(i, y + 2).value, sheet.cell(i, y + 3).value]
+            # print(list)
+            while True:
+                if list[-1] is None:
+                    del list[-1]
+                else:
+                    break
+
             if type(value) == str:
-                # 如果先匹配到‘单位’，则直接跳出循环，下一行为表头第一行
+                # 匹配‘单位’
                 match_obj = re.match("单位", value)
-                if match_obj:
+                if match_obj and len(list)>2:
+                    print("匹配到单位")
+                    # print(list)
+                    print()
+                    firstheadrow = i
+                    break
+                elif match_obj:
                     unit1 = value.split('位')[1]
                     firstheadrow = i + 1
                     break
@@ -121,9 +146,11 @@ def getheadandvalue():
     # 提取表头第一行
     firstheadrow, unit = getfirstheadrow(firstvaluerow)
 
+
     # 修正数值第一行
     if firstvaluerow == firstheadrow:
         firstvaluerow += 1
+        # print("fuck")
 
     # 修正表头最后一行
     t, u = 0, 0
@@ -167,15 +194,17 @@ def getheadandvalue():
             del columnnameoriginal[i]
         else:
             break
-    # print(columnnameoriginal)
+    print('columnnameoriginal: ' + str(len(columnnameoriginal)))
+    print(columnnameoriginal)
 
     # 补全表头层次关系
-    for r in range(1,len(columnnameoriginal)):
+    for r in range(1,len(columnnameoriginal)-1):
         headrow_num = lastheadrow - firstheadrow + 1
         w = 0
-        valuer0 = columnnameoriginal[r][0]
-        if valuer0 is None:
+        print(len(columnnameoriginal),r,columnnameoriginal[r][0])
+        if columnnameoriginal[r][0] is None:
             for i in range(1, headrow_num + 1):
+                print(r,i)
                 valueri = columnnameoriginal[r][i]
                 # print(valueri)
                 if valueri is not None:
@@ -246,6 +275,7 @@ def getheadandvalue():
 
 
 def newtable_visualise(field, valuelist,columnname_merge):
+    print(field)
     table = PrettyTable(field)
     for i in range(len(valuelist)):
         # print(i, str(valuelist[i]))
@@ -280,39 +310,85 @@ def createnewsheet(field, valuelist):
     # wb.save(outputfolder + sheet_title + '.xlsx')
 
     # excel重命名
-    os.rename(excel, outputfolder + sheet_title + '.xlsx')
+    os.rename(excel, outputpath + sheet_title + '.xlsx')
 
 
 if __name__ == '__main__':
-    input_path = 'F:\\测试数据\\年鉴自动清理表头\\测试数据'
-    outputfolder = 'F:\\测试数据\\年鉴自动清理表头\\output\\'
+    inputpath = 'F:\\测试数据\\年鉴自动清理表头\\测试数据'
+    outputpath = 'F:\\测试数据\\年鉴自动清理表头\\output\\'
 
     # 获取所有年鉴excel表格并建立结果文件夹
-    excels = get_all_excels()
+    excels = get_all_excels(inputpath, outputpath)
     print("------------------开始处理excel------------------------")
+    unsuccess_list = []
     for xlsx in excels:
-        excel = outputfolder + '\\' + xlsx
+        # excel = outputpath + '\\' + xlsx
+        #
+        # # 加载数据
+        # wb = openpyxl.load_workbook(excel)
+        # sheetname = wb.sheetnames[0]  # 直接取第一张表，因为年鉴每个excel只有一张表。
+        # sheet = wb[sheetname]
+        # maxrow = sheet.max_row
+        # maxcolumn = sheet.max_column
+        #
+        # # 提取表标题
+        # sheet_title = sheet.cell(1, 1).value
+        # print('正在处理表： ' + sheet_title)
+        #
+        # # 数据标准化
+        # data_standarize()
+        #
+        # # 提取表头和数据
+        # fieldname, sheetvalue = getheadandvalue()
+        # # print(fieldname)
+        # # print()
+        # # for i in sheetvalue:
+        # #     print(i)
+        #
+        # # 可视化表格
+        # newtable_visualise(fieldname, sheetvalue, fieldname)
+        #
+        # # 新建sheet，将表格写入,删除原有sheet1
+        # createnewsheet(fieldname, sheetvalue)
 
-        # 加载数据
-        wb = openpyxl.load_workbook(excel)
-        sheetname = wb.sheetnames[0]  # 直接取第一张表，因为年鉴每个excel只有一张表。
-        sheet = wb.get_sheet_by_name(sheetname)
-        maxrow = sheet.max_row
-        maxcolumn = sheet.max_column
 
-        # 提取表标题
-        sheet_title = sheet.cell(1, 1).value
-        print('正在处理表： ' + sheet_title)
 
-        # 数据标准化
-        data_standarize()
 
-        # 提取表头和数据
-        fieldname, sheetvalue = getheadandvalue()
 
-        # 可视化表格
-        newtable_visualise(fieldname, sheetvalue,fieldname)
 
-        # 新建sheet，将表格写入,删除原有sheet1
-        createnewsheet(fieldname, sheetvalue)
+
+
+        try:
+            excel = outputpath + '\\' + xlsx
+
+            # 加载数据
+            wb = openpyxl.load_workbook(excel)
+            sheetname = wb.sheetnames[0]  # 直接取第一张表，因为年鉴每个excel只有一张表。
+            sheet = wb[sheetname]
+            maxrow = sheet.max_row
+            maxcolumn = sheet.max_column
+
+            # 提取表标题
+            sheet_title = sheet.cell(1, 1).value
+            print('正在处理表： ' + sheet_title)
+
+            # 数据标准化
+            data_standarize()
+
+            # 提取表头和数据
+            fieldname, sheetvalue = getheadandvalue()
+
+            # 可视化表格
+            newtable_visualise(fieldname, sheetvalue,fieldname)
+
+            # 新建sheet，将表格写入,删除原有sheet1
+            createnewsheet(fieldname, sheetvalue)
+        except Exception as e:
+            print(e)
+            unsuccess_list.append(sheet_title)
+    print("未成功处理的文件包括：")
+    print(unsuccess_list)
+    for i in unsuccess_list:
+        print(i)
+
 
