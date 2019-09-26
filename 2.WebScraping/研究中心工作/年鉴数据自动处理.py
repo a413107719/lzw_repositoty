@@ -8,24 +8,25 @@ import os
 import shutil
 from shutil import copy2
 
-
-def get_all_excels(input_path, outputfolder):
+def makeoutputpath(out_path):
     # 创建输出路径
-    if os.path.isdir(outputfolder):
-        shutil.rmtree(outputfolder)
-        os.makedirs(outputfolder)
+    if os.path.isdir(out_path):
+        shutil.rmtree(out_path)
+        os.makedirs(out_path)
         print('输出文件夹已存在，已覆盖')
         print()
     else:
-        os.makedirs(outputfolder)
+        os.makedirs(out_path)
         print('新建输出文件夹：')
-        print(outputfolder + '\n')
-        
+        print(out_path + '\n')
+
+
+def get_all_excels(input_path, outputfolder, filelist):          
     # 从文件夹中找到所有的excel
     excelsfiles = []
     count = 0
-    all_file_list = os.listdir(input_path)
-    for i in all_file_list:
+    # filelist = os.listdir(input_path)
+    for i in filelist:
         print(i)
         if os.path.splitext(i)[1] == '.xls':
             excel_path = input_path + '\\' + i
@@ -38,9 +39,9 @@ def get_all_excels(input_path, outputfolder):
             excelsfiles.append(i)
             copy2(input_path + '\\' + i, outputfolder + '\\' + i)
             count += 1
-    print('原始文件夹中xls和xlsx数量等于：' + str(count))
+    # print('原始文件夹中xls和xlsx数量等于：' + str(count))
     excelsfiles = os.listdir(outputfolder)
-    print('output文件夹中xls和xlsx数量等于：' + str(len(excelsfiles)))
+    # print('output文件夹中xls和xlsx数量等于：' + str(len(excelsfiles)))
     print('包括excel文件：' + str(excelsfiles) + '\n')
     return excelsfiles
 
@@ -68,7 +69,7 @@ def data_standarize():
 # 提取数值第一行
 def find_firstvalue_row():
     firstvaluerow = 0
-    for row in range(1, maxrow):
+    for row in range(2, maxrow):
         float_num = 0
         nonevalue_num = 0
         columnvalue_list=[]
@@ -76,20 +77,38 @@ def find_firstvalue_row():
             s = sheet.cell(row, column).value
             columnvalue_list.append(s)
         while True:
-            if columnvalue_list[-1] is None:
+            # print('colunmnvalu_list: ' + str(columnvalue_list))
+            if columnvalue_list == []:
+                break
+            elif columnvalue_list[-1] is None:
                 del columnvalue_list[-1]
             else:
                 break
         # print(columnvalue_list)
-        for s in columnvalue_list:
+
+        # 避免excel中数字显示为文本，导致无法统计
+        newlist = []
+        numre = re.compile(r"\d\d+")
+        for n in columnvalue_list:
+            i = str(n)
+            match = numre.search(i)
+            if match:
+                newlist.append(int(i))
+            else:
+                newlist.append(n)
+        # print(newlist)
+
+        for s in newlist:
             if type(s) == float or type(s) == int:
                 float_num += 1
             elif s is None:
                 nonevalue_num += 1
         # 打印小数占行内所有非空数据的比例
         # print(maxcolumn,nonevalue_num)
-        if maxcolumn - nonevalue_num >= 3:
-            float_proportion = float_num / (len(columnvalue_list) - nonevalue_num)
+        if newlist == []:
+            pass
+        elif maxcolumn - nonevalue_num >= 3:
+            float_proportion = float_num / (len(newlist) - nonevalue_num)
             # print(row, maxcolumn, float_num, nonevalue_num,float_proportion)
             if float_proportion >= 0.2:
                 firstvaluerow = row
@@ -118,7 +137,7 @@ def getfirstheadrow(firstvalue_row):
                 if match_obj and len(list)>2:
                     print("匹配到单位")
                     # print(list)
-                    print()
+                    # print()
                     firstheadrow = i
                     break
                 elif match_obj:
@@ -150,7 +169,6 @@ def getheadandvalue():
     # 修正数值第一行
     if firstvaluerow == firstheadrow:
         firstvaluerow += 1
-        # print("fuck")
 
     # 修正表头最后一行
     t, u = 0, 0
@@ -194,17 +212,17 @@ def getheadandvalue():
             del columnnameoriginal[i]
         else:
             break
-    print('columnnameoriginal: ' + str(len(columnnameoriginal)))
-    print(columnnameoriginal)
+    # print('columnnameoriginal: ' + str(len(columnnameoriginal)))
+    # print(columnnameoriginal)
 
     # 补全表头层次关系
     for r in range(1,len(columnnameoriginal)-1):
         headrow_num = lastheadrow - firstheadrow + 1
         w = 0
-        print(len(columnnameoriginal),r,columnnameoriginal[r][0])
+        # print(len(columnnameoriginal),r,columnnameoriginal[r][0])
         if columnnameoriginal[r][0] is None:
             for i in range(1, headrow_num + 1):
-                print(r,i)
+                # print(r,i)
                 valueri = columnnameoriginal[r][i]
                 # print(valueri)
                 if valueri is not None:
@@ -310,85 +328,109 @@ def createnewsheet(field, valuelist):
     # wb.save(outputfolder + sheet_title + '.xlsx')
 
     # excel重命名
-    os.rename(excel, outputpath + sheet_title + '.xlsx')
+    os.rename(excel, outputpath + '\\'+ sheet_title + '.xlsx')
+
+
+def logwrite(out_path, data):
+    logexcel_path = out_path + '\\' + '未转换成功数据列表.xlsx'
+    wb = openpyxl.Workbook()
+    sheet = wb['Sheet']
+    num = 0
+    for child in data:
+        n = len(child[1])
+        for i in range(n):
+            newrow = num + i + 1
+            sheet.cell(row=newrow, column=1).value = child[0]
+            sheet.cell(row=newrow, column=2).value = child[1][i]
+        num = num + n
+    wb.save(logexcel_path)
 
 
 if __name__ == '__main__':
-    inputpath = 'F:\\测试数据\\年鉴自动清理表头\\测试数据'
-    outputpath = 'F:\\测试数据\\年鉴自动清理表头\\output\\'
+    domainpath = 'F:\\测试数据\\年鉴自动清理表头\\测试数据'
+    out_path = 'F:\\测试数据\\年鉴自动清理表头\\output'
 
-    # 获取所有年鉴excel表格并建立结果文件夹
-    excels = get_all_excels(inputpath, outputpath)
-    print("------------------开始处理excel------------------------")
-    unsuccess_list = []
-    for xlsx in excels:
-        # excel = outputpath + '\\' + xlsx
-        #
-        # # 加载数据
-        # wb = openpyxl.load_workbook(excel)
-        # sheetname = wb.sheetnames[0]  # 直接取第一张表，因为年鉴每个excel只有一张表。
-        # sheet = wb[sheetname]
-        # maxrow = sheet.max_row
-        # maxcolumn = sheet.max_column
-        #
-        # # 提取表标题
-        # sheet_title = sheet.cell(1, 1).value
-        # print('正在处理表： ' + sheet_title)
-        #
-        # # 数据标准化
-        # data_standarize()
-        #
-        # # 提取表头和数据
-        # fieldname, sheetvalue = getheadandvalue()
-        # # print(fieldname)
-        # # print()
-        # # for i in sheetvalue:
-        # #     print(i)
-        #
-        # # 可视化表格
-        # newtable_visualise(fieldname, sheetvalue, fieldname)
-        #
-        # # 新建sheet，将表格写入,删除原有sheet1
-        # createnewsheet(fieldname, sheetvalue)
+    allunsuccesslist = []
+    for currentfolder, subfolders, currentfiles in os.walk(domainpath):
+        # 构建inputpath,outputpath,filelist
+        # print(currentfolder, subfolders, currentfiles)
+        inputpath = currentfolder
+        filelist = currentfiles
+        # print(currentfolder.split(domainpath))
+        if currentfolder.split(domainpath) != ['', '']:
+            outputpath = out_path + currentfolder.split(domainpath)[1]
+            print(outputpath)
+        else:
+            outputpath = out_path
+        makeoutputpath(outputpath)
+
+        # inputpath = 'F:\\测试数据\\年鉴自动清理表头\\测试数据'
+        # outputpath = 'F:\\测试数据\\年鉴自动清理表头\\output'
+        # 获取所有年鉴excel表格并建立结果文件夹
+        excels = get_all_excels(inputpath, outputpath, filelist)
+        print("------------------开始处理excel------------------------")
+        unsuccess_list = []
+        for xlsx in excels:
+
+            # excel = outputpath + '\\' + xlsx
+            # # 加载数据
+            # wb = openpyxl.load_workbook(excel)
+            # sheetname = wb.sheetnames[0]  # 直接取第一张表，因为年鉴每个excel只有一张表。
+            # sheet = wb[sheetname]
+            # maxrow = sheet.max_row
+            # maxcolumn = sheet.max_column
+            #
+            # # 提取表标题
+            # sheet_title = sheet.cell(1, 1).value
+            # print('正在处理表： ' + sheet_title)
+            #
+            # # 数据标准化
+            # data_standarize()
+            #
+            # # 提取表头和数据
+            # fieldname, sheetvalue = getheadandvalue()
+            # # print(fieldname)
+            # # print()
+            # # for i in sheetvalue:
+            # #     print(i)
+            #
+            # # 可视化表格
+            # newtable_visualise(fieldname, sheetvalue, fieldname)
+            #
+            # # 新建sheet，将表格写入,删除原有sheet1
+            # createnewsheet(fieldname, sheetvalue)
 
 
+            try:
+                excel = outputpath + '\\' + xlsx
 
+                # 加载数据
+                wb = openpyxl.load_workbook(excel)
+                sheetname = wb.sheetnames[0]  # 直接取第一张表，因为年鉴每个excel只有一张表。
+                sheet = wb[sheetname]
+                maxrow = sheet.max_row
+                maxcolumn = sheet.max_column
 
+                # 提取表标题
+                sheet_title = sheet.cell(1, 1).value
+                print('正在处理表： ' + sheet_title)
 
+                # 数据标准化
+                data_standarize()
 
+                # 提取表头和数据
+                fieldname, sheetvalue = getheadandvalue()
 
+                # 可视化表格
+                newtable_visualise(fieldname, sheetvalue,fieldname)
 
-        try:
-            excel = outputpath + '\\' + xlsx
-
-            # 加载数据
-            wb = openpyxl.load_workbook(excel)
-            sheetname = wb.sheetnames[0]  # 直接取第一张表，因为年鉴每个excel只有一张表。
-            sheet = wb[sheetname]
-            maxrow = sheet.max_row
-            maxcolumn = sheet.max_column
-
-            # 提取表标题
-            sheet_title = sheet.cell(1, 1).value
-            print('正在处理表： ' + sheet_title)
-
-            # 数据标准化
-            data_standarize()
-
-            # 提取表头和数据
-            fieldname, sheetvalue = getheadandvalue()
-
-            # 可视化表格
-            newtable_visualise(fieldname, sheetvalue,fieldname)
-
-            # 新建sheet，将表格写入,删除原有sheet1
-            createnewsheet(fieldname, sheetvalue)
-        except Exception as e:
-            print(e)
-            unsuccess_list.append(sheet_title)
-    print("未成功处理的文件包括：")
-    print(unsuccess_list)
-    for i in unsuccess_list:
-        print(i)
-
+                # 新建sheet，将表格写入,删除原有sheet1
+                createnewsheet(fieldname, sheetvalue)
+            except Exception as e:
+                print(e)
+                unsuccess_list.append(sheet_title)
+        # print("未成功处理的文件包括：")
+        # print(unsuccess_list)
+        allunsuccesslist.append([outputpath, unsuccess_list])
+    logwrite(out_path, allunsuccesslist)
 
