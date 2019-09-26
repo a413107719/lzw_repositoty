@@ -4,15 +4,16 @@ import openpyxl
 import time
 import socket
 import uuid
+import shutil
 
 
 # 新建一个output数据库
-def create_gdb(cad_folder):
+def create_gdb(cad_folder, gdbpath):
     if arcpy.Exists("ProjectGDB.gdb"):
-        print('ProjectGDB.gdb数据库已存在,将直接把数据写入数据库')
-    else:
-        arcpy.CreateFileGDB_management(cad_folder, "ProjectGDB.gdb")
-        print("成功创建ProjectGDB.gdb数据库")
+        shutil.rmtree(gdbpath)
+        print('ProjectGDB.gdb数据库已存在,将删除')
+    arcpy.CreateFileGDB_management(cad_folder, "ProjectGDB.gdb")
+    print("成功创建ProjectGDB.gdb数据库")
 
 
 # 提取点、线、面和注记数据
@@ -21,40 +22,49 @@ def dwg2gdb(cad_folder, gdb_path, muban_excel):
     wb = openpyxl.load_workbook(muban_excel)
     os.chdir(cad_folder)
     cads = arcpy.ListFiles("*.dwg")
+    num00 = len(cads)
     print('文件夹中存在CAD数据：' + str(cads) + '\n')
 
     # 提取数据
     feature_kinds = ['Point', 'Polyline', 'Polygon', 'Annotation']
     for feature_kind in feature_kinds:
+        num = num00
         sheet = wb[feature_kind]
         max_row = sheet.max_row
-        print("共有" + str(max_row - 1) + "条" + feature_kind + "数据将会被提取出来")
         for cad in cads:
+            num = num -1
+            print('\n' + "-------------------------" + feature_kind + "还剩：" + str(num) + ' 个数据需要提取------------------------' + '\n')
             print('【正在从"' + cad + '"中提取' + feature_kind + '数据】')
             dwg_feature = cad_folder + cad + "\\" + feature_kind
             arcpy.env.workspace = gdb_path
             arcpy.env.overwriteOutput = True
             for name in range(2, max_row+1):
-                feature_name = sheet.cell(name, 1).value + '_' + cad.split('.')[0]
+                sheetvalue = sheet.cell(name, 1).value
+                if sheetvalue is None:
+                    continue
+                # print(sheetvalue)
+                cadname = cad.split('.')[0]
+                # print(cadname)
+                feature_name = sheetvalue + '_' + cadname
                 selet_condition = sheet.cell(name, 2).value
                 if feature_name is None:
                     pass
                 else:
-                    print('[' + feature_name + ']')
-                    print(dwg_feature)
-                    print(gdb_path)
-                    print(feature_name)
-                    print(selet_condition)
+                    # print('[' + feature_name + ']')
+                    # print(dwg_feature)
+                    # print(gdb_path)
+                    # print(feature_name)
+                    # print(selet_condition)
                     arcpy.FeatureClassToFeatureClass_conversion(dwg_feature, gdb_path, feature_name, selet_condition)
-                    print("成功在数据库中添加要素：" + feature_name + '\n')
-            print('-----------------------' + '\n' + '【' + feature_kind + "数据已提取完成" + '】' + "\n")
+                    print("成功在数据库中添加要素：" + feature_name)
+        print('-----------------------' + '\n' + '【' + feature_kind + "数据已提取完成" + '】' + "\n")
 
     # 删除空数据
     print('【' + "正在删除空数据" + '】')
     arcpy.env.workspace = gdb_path
     for shpfile in arcpy.ListFeatureClasses():
         rowcount = arcpy.GetCount_management(shpfile)
-        print("数据名称： " + shpfile + "     数据量：" + str(rowcount))
+        # print("数据名称： " + shpfile + "     数据量：" + str(rowcount))
         if int(str(rowcount)) == 0:
             fullpath = gdb_path + '\\' + shpfile
             arcpy.Delete_management(fullpath)  # 在GDB中删除数据
@@ -64,6 +74,7 @@ def dwg2gdb(cad_folder, gdb_path, muban_excel):
 
 # 清理字段
 def clean_data(gdbfeatures):
+    print('-----------------------开始清理数据--------------------------------')
     wb = openpyxl.load_workbook(muban_excel)
     feature_kinds = ['Point', 'Polyline', 'Polygon', 'Annotation']
     for feature_kind in feature_kinds:
@@ -98,7 +109,8 @@ def clean_data(gdbfeatures):
 
 
 # 分类合并数据
-def merge_kind_features(gdbfeatures):
+def merge_kind_features(gdbfeatures,gdb_path):
+    print('-----------------------开始合并数据-------------------------')
     # 分类数据
     dic = {}
     for num, name in enumerate(gdbfeatures):
@@ -195,20 +207,20 @@ def data_visualization(cad_folder, gdb_path, muban_excel, muban_aprx):
 
 
 def main_function():
+    gdb_path = cadfolder + 'ProjectGDB.gdb'
     arcpy.env.workspace = cadfolder
-    create_gdb(cadfolder)  # 新建一个gdbpath数据库
+    create_gdb(cadfolder, gdb_path)  # 新建一个gdbpath数据库
     dwg2gdb(cadfolder, gdb_path, muban_excel)  # 找到所有dwg文件，并提取信息到数据库
     arcpy.env.workspace = gdb_path
     gdb_features = arcpy.ListFeatureClasses()
     print(gdb_features)
     clean_data(gdb_features)
-    merge_kind_features(gdb_features)
+    merge_kind_features(gdb_features, gdb_path)
     data_visualization(cadfolder, gdb_path, muban_excel, muban_aprx)   # 新建aprx工程文件，新建map，数据可视化
 
 
 if __name__ == '__main__':
-    gdb_path = 'F:\\测试数据\\地形图信息提取\\ProjectGDB.gdb'
-    cadfolder = 'F:\\测试数据\\地形图信息提取\\'
+    cadfolder = 'F:\\测试数据\\地形图信息提取\\cad\\'
     muban_excel = 'F:\\测试数据\\地形图信息提取\\模板\\地形图提取模板.xlsx'
     muban_aprx = 'F:\\测试数据\\地形图信息提取\\模板\\模板.aprx'
 

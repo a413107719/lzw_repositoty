@@ -116,15 +116,17 @@ def filedown(title, url, year):  # 文件下载函数
 
 if __name__ == '__main__':
     # 默认下载到D盘的“年鉴数据下载”文件夹中
+    # 'GuangXi2018': "N2018110018", 'GuangXi2017': "N2017120295", 'GuangXi2016': "N2017020374", 'GuangXi2015': "N2016010072", 'GuangXi2014': "N2014120093", 'GuangXi2013': "N2013110048",
+    # 'GuiLin2018': "N2019030108", 'GuiLin2017': "N2018050237", 'GuiLin2015': "N2016120526", 'GuiLin2016': "N2017060049", 'GuiLin2014': "N2015040003", 'GuiLin2013': "N2014050092",
     targets = {
-        'GuangXi2018': "N2018110018", 'GuangXi2017': "N2017120295", 'GuangXi2016': "N2017020374", 'GuangXi2015': "N2016010072", 'GuangXi2014': "N2014120093", 'GuangXi2013': "N2013110048",
-        'GuiLin2018': "N2019030108", 'GuiLin2017': "N2018050237", 'GuiLin2015': "N2016120526", 'GuiLin2016': "N2017060049", 'GuiLin2014': "N2015040003", 'GuiLin2013':"N2014050092",
         'GuiZou2018': "N2019010158", 'GuiZou2017': "N2017120264", 'GuiZou2015': "N2016010122", 'GuiZou2016': "N2017020211", 'GuiZou2014': "N2014120128", 'GuiZou2013': "N2013120102",
         'HuNan2018': "N2019040070", 'HuNan2017': "N2018050230", 'HuNan2015': "N2016010070", 'HuNan2016': "N2017020284", 'HuNan2014': "N2014120095", 'HuNan2013': "N2013120093"
     }
     for target in targets:
+        print("开始爬取 %s 的数据"%target)
         year = target
         yearcode = targets[year]
         filedata(yearcode, year)
         print("已经完成 " + str(year) + " 年数据的爬取")
+        time.sleep(5)
 

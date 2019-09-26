@@ -159,25 +159,16 @@ def getheadandvalue():
             headname.append(headcellvalue)
         # print(headname)
         columnnameoriginal.append(headname)
-    # print(columnnameoriginal)
-
-    i=-1
-    while True:
-        if columnnameoriginal[i] == [None, None]:
-            del columnnameoriginal[i]
-        else:
-            break
-    # print(columnnameoriginal)
+    # print()
 
     # 补全表头层次关系
-    for r in range(1,len(columnnameoriginal)):
+    for r in range(len(columnnameoriginal)):
         headrow_num = lastheadrow - firstheadrow + 1
         w = 0
         valuer0 = columnnameoriginal[r][0]
         if valuer0 is None:
             for i in range(1, headrow_num + 1):
                 valueri = columnnameoriginal[r][i]
-                # print(valueri)
                 if valueri is not None:
                     w = i
                     break
@@ -203,8 +194,6 @@ def getheadandvalue():
                 list.append(str(i[y]))
         s = '_'
         mergename = s.join(list)
-        if mergename in columnnamemerge:
-            mergename = mergename + '1'
         columnnamemerge.append(mergename)
 
     # 处理只有英文的字段
@@ -220,7 +209,7 @@ def getheadandvalue():
     valuelist = []
     for i in range(firstvaluerow, maxrow + 1):
         rowlist = []
-        for y in range(1, len(columnnamemerge) + 1):
+        for y in range(1, maxcolumn + 1):
             value1 = sheet.cell(i, y).value
             rowlist.append(value1)
         valuelist.append(rowlist)
@@ -245,10 +234,9 @@ def getheadandvalue():
     return columnnamemerge, valuelist
 
 
-def newtable_visualise(field, valuelist,columnname_merge):
+def newtable_visualise(field, valuelist):
     table = PrettyTable(field)
-    for i in range(len(columnname_merge)):
-        print(i, str(valuelist[i]))
+    for i in range(len(valuelist)):
         table.add_row(valuelist[i])
     print(table)
     print()
@@ -264,18 +252,16 @@ def createnewsheet(field, valuelist):
         new_sheet.title = "newsheet"
     alignment_style = Alignment(horizontal='center', vertical='center',wrap_text=True)
     # 写入标题
-    for i in range(len(fieldname)):
+    for i in range(maxcolumn):
         new_sheet.cell(row=1, column=i+1).value = field[i]
         new_sheet.cell(row=1, column=i+1).alignment = alignment_style
         new_sheet.cell(row=1, column=i+1).font = Font(bold=True, size=9)
     # 写入值
     for m in range(len(valuelist)):
-        for n in range(len(fieldname)):
+        for n in range(maxcolumn):
             new_sheet.cell(row=m+2, column=n + 1).value = valuelist[m][n]
-    sheetnames = wb.sheetnames
-    if 'Sheet1' in sheetnames:
-        Sheet1 = wb.get_sheet_by_name('Sheet1')
-        wb.remove(Sheet1)
+    Sheet1 = wb.get_sheet_by_name('Sheet1')
+    wb.remove(Sheet1)
     wb.save(excel)
     # wb.save(outputfolder + sheet_title + '.xlsx')
 
@@ -284,8 +270,8 @@ def createnewsheet(field, valuelist):
 
 
 if __name__ == '__main__':
-    input_path = 'F:\\测试数据\\年鉴自动清理表头\\测试数据'
-    outputfolder = 'F:\\测试数据\\年鉴自动清理表头\\output\\'
+    input_path = 'D:\\YearbookDownload'
+    outputfolder = 'D:\\yearbookoutput'
 
     # 获取所有年鉴excel表格并建立结果文件夹
     excels = get_all_excels()
@@ -309,10 +295,9 @@ if __name__ == '__main__':
 
         # 提取表头和数据
         fieldname, sheetvalue = getheadandvalue()
-        print(fieldname)
 
         # 可视化表格
-        newtable_visualise(fieldname, sheetvalue,fieldname)
+        newtable_visualise(fieldname, sheetvalue)
 
         # 新建sheet，将表格写入,删除原有sheet1
         createnewsheet(fieldname, sheetvalue)
