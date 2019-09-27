@@ -88,14 +88,13 @@ def find_firstvalue_row():
 
         # 避免excel中数字显示为文本，导致无法统计
         newlist = []
-        numre = re.compile(r"\d\d+")
-        for n in columnvalue_list:
-            i = str(n)
-            match = numre.search(i)
-            if match:
+        for i in columnvalue_list:
+            if type(i) == int or type(i) == float or i is None:
+                newlist.append(i)
+            elif i.isdigit():
                 newlist.append(int(i))
             else:
-                newlist.append(n)
+                newlist.append(i)
         # print(newlist)
 
         for s in newlist:
@@ -107,37 +106,37 @@ def find_firstvalue_row():
         # print(maxcolumn,nonevalue_num)
         if newlist == []:
             pass
-        elif maxcolumn - nonevalue_num >= 3:
+        elif maxcolumn - nonevalue_num >= 2:
             float_proportion = float_num / (len(newlist) - nonevalue_num)
             # print(row, maxcolumn, float_num, nonevalue_num,float_proportion)
             if float_proportion >= 0.2:
                 firstvaluerow = row
                 break
+    # print('firstvaluerow:' + str(firstvaluerow))
     return firstvaluerow
 
 
 def getfirstheadrow(firstvalue_row):
     firstheadrow = 0
     unit1 = 0
+    print("firstvaluerow:" + str(firstvalue_row))
     for i in range(2, firstvalue_row):
-        for y in range(1, maxcolumn):
+        for y in range(1, maxcolumn+1):
             value = sheet.cell(i, y).value
             # 排除字段名称为"单位"
             list = [value, sheet.cell(i, y + 1).value, sheet.cell(i, y + 2).value, sheet.cell(i, y + 3).value]
-            # print(list)
+            # print('list:' + str(list))
             while True:
-                if list[-1] is None:
+                if list == []:
+                    break
+                elif list[-1] is None:
                     del list[-1]
                 else:
                     break
-
             if type(value) == str:
-                # 匹配‘单位’
+                # 匹配包含‘单位’的字段
                 match_obj = re.match("单位", value)
-                if match_obj and len(list)>2:
-                    print("匹配到单位")
-                    # print(list)
-                    # print()
+                if match_obj and len(list) >= 2:
                     firstheadrow = i
                     break
                 elif match_obj:
@@ -151,19 +150,23 @@ def getfirstheadrow(firstvalue_row):
                 if chinese_match:
                     firstheadrow = i
                     unit1 = None
-                    # print(chinese_match)
                     break
+            elif value is None:
+                continue
         if firstheadrow != 0:
             break
+    print(firstheadrow)
     return firstheadrow, unit1
 
 
 def getheadandvalue():
     # 提取数值第一行
     firstvaluerow = find_firstvalue_row()
+    # print('firstvaluerow' + str(firstvaluerow))
 
     # 提取表头第一行
     firstheadrow, unit = getfirstheadrow(firstvaluerow)
+    # print('firstheadrow' + str(firstheadrow))
 
 
     # 修正数值第一行
@@ -212,17 +215,24 @@ def getheadandvalue():
             del columnnameoriginal[i]
         else:
             break
-    # print('columnnameoriginal: ' + str(len(columnnameoriginal)))
-    # print(columnnameoriginal)
+    print('columnnameoriginal: ' + str(len(columnnameoriginal)))
+    print(columnnameoriginal)
 
     # 补全表头层次关系
+    if len(columnnameoriginal[1]) == 1:
+        while True:
+            if columnnameoriginal[-1][0] is None:
+                del columnnameoriginal[-1]
+            else:
+                break
+    headrow_num = lastheadrow - firstheadrow + 1
     for r in range(1,len(columnnameoriginal)-1):
-        headrow_num = lastheadrow - firstheadrow + 1
+        # headrow_num = lastheadrow - firstheadrow + 1
         w = 0
-        # print(len(columnnameoriginal),r,columnnameoriginal[r][0])
+        # print(len(columnnameoriginal[1]),r,columnnameoriginal[r][0])
         if columnnameoriginal[r][0] is None:
             for i in range(1, headrow_num + 1):
-                # print(r,i)
+                print(r, i, headrow_num)
                 valueri = columnnameoriginal[r][i]
                 # print(valueri)
                 if valueri is not None:
@@ -302,9 +312,9 @@ def newtable_visualise(field, valuelist,columnname_merge):
     print()
 
 
-def createnewsheet(field, valuelist):
+def createnewsheet(field, valuelist, sheet_title):
     if "newsheet" in wb.sheetnames:
-        new_sheet = wb.get_sheet_by_name("newsheet")
+        new_sheet = wb["newsheet"]
         print("表格已存在")
     else:
         new_sheet = wb.create_sheet()
@@ -322,12 +332,23 @@ def createnewsheet(field, valuelist):
             new_sheet.cell(row=m+2, column=n + 1).value = valuelist[m][n]
     sheetnames = wb.sheetnames
     if 'Sheet1' in sheetnames:
-        Sheet1 = wb.get_sheet_by_name('Sheet1')
+        Sheet1 = wb['Sheet1']
         wb.remove(Sheet1)
     wb.save(excel)
     # wb.save(outputfolder + sheet_title + '.xlsx')
 
     # excel重命名
+    # print(sheet_title)
+    invalid_characaters = "、()（）:：，。!@#$^&*_<=,+[]\"{}\\;,',.?/\n)＃'%％±\xa0"
+    for c in invalid_characaters:
+        sheet_title = sheet_title.replace(c, "")
+        sheet_title = sheet_title.replace(" ", "")
+        sheet_title = sheet_title.replace("　", "")
+    # print(sheet_title)
+    # print("已完成表名清洗")
+
+
+
     os.rename(excel, outputpath + '\\'+ sheet_title + '.xlsx')
 
 
@@ -379,26 +400,21 @@ if __name__ == '__main__':
             # sheet = wb[sheetname]
             # maxrow = sheet.max_row
             # maxcolumn = sheet.max_column
-            #
             # # 提取表标题
             # sheet_title = sheet.cell(1, 1).value
             # print('正在处理表： ' + sheet_title)
-            #
             # # 数据标准化
             # data_standarize()
-            #
             # # 提取表头和数据
             # fieldname, sheetvalue = getheadandvalue()
             # # print(fieldname)
             # # print()
             # # for i in sheetvalue:
             # #     print(i)
-            #
             # # 可视化表格
             # newtable_visualise(fieldname, sheetvalue, fieldname)
-            #
             # # 新建sheet，将表格写入,删除原有sheet1
-            # createnewsheet(fieldname, sheetvalue)
+            # createnewsheet(fieldname, sheetvalue, sheet_title)
 
 
             try:
@@ -425,7 +441,7 @@ if __name__ == '__main__':
                 newtable_visualise(fieldname, sheetvalue,fieldname)
 
                 # 新建sheet，将表格写入,删除原有sheet1
-                createnewsheet(fieldname, sheetvalue)
+                createnewsheet(fieldname, sheetvalue, sheet_title)
             except Exception as e:
                 print(e)
                 unsuccess_list.append(sheet_title)
@@ -433,4 +449,5 @@ if __name__ == '__main__':
         # print(unsuccess_list)
         allunsuccesslist.append([outputpath, unsuccess_list])
     logwrite(out_path, allunsuccesslist)
+    print("已写入log")
 
