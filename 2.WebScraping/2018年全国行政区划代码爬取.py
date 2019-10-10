@@ -12,7 +12,7 @@ from retrying import retry
 # 让函数报错后继续重新执行，达到最大执行次数的上限后才判断链接失效，不再继续执行。
 @retry(stop_max_attempt_number=3)
 def get_html(url):
-    global curr_url
+    # global curr_url
     user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
     response = urllib.request.Request(url)
     response.add_header('User-Agent', user_agent)
@@ -194,5 +194,5 @@ if __name__ == '__main__':
     level_arr = {'1': 'provincetr', '2': 'citytr', '3': 'countytr', '4': 'towntr', '5': 'villagetr'}
     url = 'http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2018/index.html'
     excel_path = 'D:\\'
-    curr_url = ''
+    # curr_url = ''
     get_area_list(url, "广西壮族自治区", 5)

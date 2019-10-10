@@ -16,8 +16,10 @@ def create_gdb(input_folder):
 
 
 # 提取点、线、面和注记数据
-def dwg2gdb(input_folder, output_folder, muban_folder):
-    wb = openpyxl.load_workbook(muban_folder + '地形图提取模板.xlsx')
+# def dwg2gdb(input_folder, output_folder, muban_folder):
+def dwg2gdb(input_folder, output_folder, template_excel):
+    # wb = openpyxl.load_workbook(muban_folder + '地形图提取模板.xlsx')
+    wb = openpyxl.load_workbook(template_excel)
     os.chdir(input_folder)
     cads = arcpy.ListFiles("*.dwg")
     print('文件夹中存在CAD数据：' + str(cads) + '\n')
@@ -63,8 +65,8 @@ def dwg2gdb(input_folder, output_folder, muban_folder):
 
 
 # 新建map + 添加数据 + 可视化
-def data_visualization(input_folder, output_folder, muban_folder):
-    pro_aprx = arcpy.mp.ArcGISProject(muban_folder + "模板.aprx")
+def data_visualization(input_folder, output_folder, template_excel, template_file):
+    pro_aprx = arcpy.mp.ArcGISProject(template_file)
 
     # 在map中添加数据
     print('【' + '开始在map中添加数据' + '】')
@@ -79,7 +81,7 @@ def data_visualization(input_folder, output_folder, muban_folder):
 
     # 设置数据样式
     print('【' + '开始设置符号样式' + '】')
-    wb = openpyxl.load_workbook(muban_folder + '地形图提取模板.xlsx')
+    wb = openpyxl.load_workbook(template_excel)
     os.chdir(input_folder)
     feature_kinds = ['Point', 'Polyline', 'Polygon', 'Annotation']
     for feature_kind in feature_kinds:
@@ -194,25 +196,28 @@ def compare_pcinfo():
 
 
 if __name__ == '__main__':
+    # 设置参数
+    # cad_folder = arcpy.GetParameterAsText(0) + '\\'    # 请选择CAD所在文件夹
+    # template_file = arcpy.GetParameterAsText(1)    # 请选择aprx模板文件
+    # template_excel = arcpy.GetParameterAsText(2)  # 请选择Excel模板文件
+
     # 身份验证
-    if compare_pcinfo() == 'yes':
-        pass
-    else:
-        exit()
+    # if compare_pcinfo() == 'yes':
+    #     pass
+    # else:
+    #     exit()
 
-    # 独立运行版本
+    # 数据位置
     cad_folder = 'F:\\测试数据\\地形图信息提取\\'
-    template_folder = 'F:\\测试数据\\模板\\'
-
-    # GIS Pro插件版本
-    # cad_folder = arcpy.GetParameterAsText(0) + '\\'
-    # template_folder = arcpy.GetParameterAsText(1) + '\\'
-
+    # template_folder = 'F:\\测试数据\\模板\\'
+    template_excel = 'F:\\测试数据\\模板\\地形图提取模板.xlsx'
+    template_file = 'F:\\测试数据\\模板\\模板.aprx'
     output = cad_folder + "ProjectGDB.gdb"
+
     arcpy.env.workspace = cad_folder
     # 新建一个output数据库
     create_gdb(cad_folder)
     # 找到所有dwg文件，并提取信息到数据库
-    dwg2gdb(cad_folder, output, template_folder)
+    dwg2gdb(cad_folder, output, template_excel)
     # 新建aprx工程文件，新建map，数据可视化
-    data_visualization(cad_folder, output, template_folder)
+    data_visualization(cad_folder, output, template_excel, template_file)
