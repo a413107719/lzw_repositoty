@@ -86,10 +86,16 @@ def get_pointimformation(namelist, linklist, kind_name):
     kinds_all_list = []
     count = 0
     for name, pointurl in zip(namelist, linklist):
-        findresult = mycolumn.find({"kind": kind_name, "name":name})
+        findresult = mycolumn.find({"kind": kind_name, "name":name})  # mongodb查重
         num = len(list(findresult))
         if num != 1:
             point_data(name, pointurl, kind_name)  # 找到每个点的具体信息
+            count += 1
+            if count == 10:
+                sleeptime = random.randint(2, 5)
+                print("每爬取10个信息随机暂停：" + str(sleeptime) + '\n')
+                time.sleep(sleeptime)
+                count = 0
         else:
             print(name + '：已经存在')
 
@@ -110,31 +116,61 @@ def point_data(name, point_url, kind_name):
             print(str(len(kinds_all_list)) + ':' + str([name, kind_name, province, city, lattitude, longitude]))
 
             # 写入mongodb
-            pointimformation = [name, kind_name, province, city, lattitude, longitude]                       
+            pointimformation = [name, kind_name, province, city, lattitude, longitude]
             dict = {'name': pointimformation[0], 'kind': pointimformation[1], 'province': pointimformation[2],
                     'city': pointimformation[3], 'longitude': pointimformation[4], 'latitude': pointimformation[5]}
             mycolumn.update(dict, dict, True)
-            
+
         else:
             print("此链接没信息：" + point_url)
 
     except Exception as e:
         print(e, point_url)
         print("point_data出错，重新请求")
-        time.sleep(5)
+        time.sleep(7)
         proxies = get_proxies()
         point_data(name, point_url, kind_name)
 
 
+# def point_data(name, point_url, kind_name):
+#     global proxies
+#     web_data = requests.get(point_url, proxies=proxies)
+#     soup = BeautifulSoup(web_data.text, "html.parser")
+#     names = soup.find_all('meta')
+#     text = names[2].get('content')  # province=四川;city=自贡;coord=104.76247,29.37363
+#     textregex = re.compile(r'province=(\S\S);city=(\S\S);coord=(\d+\W\d+),(\d+\W\d+)')
+#     mo = textregex.search(text)
+#     if mo is not None:
+#         province, city, lattitude, longitude = mo.groups()
+#         kinds_all_list.append([name, kind_name, province, city, lattitude, longitude])
+#         print(str(len(kinds_all_list)) + ':' + str([name, kind_name, province, city, lattitude, longitude]))
+#
+#         # 写入mongodb
+#         pointimformation = [name, kind_name, province, city, lattitude, longitude]
+#         dict = {'name': pointimformation[0], 'kind': pointimformation[1], 'province': pointimformation[2],
+#                 'city': pointimformation[3], 'longitude': pointimformation[4], 'latitude': pointimformation[5]}
+#         mycolumn.update(dict, dict, True)
+#
+#     else:
+#         print("此链接没信息：" + point_url)
+
+
 # 获取代理IP，并合成一个proxise
 def get_proxies():
-    url = "http://http.tiqu.alicdns.com/getip3?num=1&type=1&pro=&city=0&yys=0&port=1&time=1&ts=0&ys=0&cs=0&lb=1&sb=0&pb=4&mr=1&regions=&gm=4"  # 从代理网站上获取的url
-    page = requests.get(url)
-    ip = page.text
-    proxy_ip = 'http://' + ip.split('\r')[0]
-    proxies = {'http': proxy_ip}      # {'http': 'http://58.218.214.141:4549'}
-    print("代理列表抓取成功: " + proxy_ip)
-    return proxies
+    try:
+        url = "http://http.tiqu.alicdns.com/getip3?num=1&type=1&pro=&city=0&yys=0&port=1&time=1&ts=0&ys=0&cs=0&lb=1&sb=0&pb=4&mr=1&regions=&gm=4"  # 从代理网站上获取的url
+        page = requests.get(url)
+        ip = page.text
+        proxy_ip = 'http://' + ip.split('\r')[0]
+        proxies = {'http': proxy_ip}      # {'http': 'http://58.218.214.141:4549'}
+        print("代理抓取成功: " + proxy_ip)   # 代理列表抓取成功: http://{"code":111,"data":[],"msg":"请2秒后再试","success":false}
+        if proxy_ip == 'http://{"code":111,"data":[],"msg":"请2秒后再试","success":false}':
+            raise Exception('未能获取有效代理地址')
+        return proxies
+    except Exception as e:
+        print(e)
+        time.sleep(5)
+        get_proxies()
 
 
 def main():
@@ -151,11 +187,14 @@ def main():
 
             # 判断此类数据在mongodb中的数量是否一致，如果一致则跳过分类
             kind_number = len(kind_allpoints_name)
-            findresult = mycolumn.find({"kind": kindname})
-            print(kind_number,len(list(findresult)))
-            if kind_number == len(list(findresult)):
-                continue
-            get_pointimformation(kind_allpoints_name, kind_allpoints_url, kindname)
+            findresult = len(list(mycolumn.find({"kind": kindname})))
+            ratio = findresult/kind_number
+            print(kind_number, findresult, ratio)
+            if ratio > 0.96:
+                print(kindname + "已爬取完成，将爬取下一类型数据" + "\n")
+            else:
+                print(kindname + "还未爬取完成，需继续爬取")
+                get_pointimformation(kind_allpoints_name, kind_allpoints_url, kindname)
 
         except Exception as e:
             print(e)
