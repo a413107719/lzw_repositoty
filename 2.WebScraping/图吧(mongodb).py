@@ -27,7 +27,8 @@ def get_kindscrapt():
 # 找到需要爬取的数据大类名称和链接
 @retry(stop_max_attempt_number=3)
 def kinds_data(mainurl):
-    global proxie_ip
+    global proxie_ip, kinds_willscrapt_name, kinds_willscrapt_url
+
     try:
         web_data = requests.get(mainurl, proxies=proxie_ip)  # 找到目标页面所有分类名称和地址
         soup = BeautifulSoup(web_data.text, "html.parser")
@@ -37,11 +38,13 @@ def kinds_data(mainurl):
         for i in selects:
             kind_names.append(i.getText())
             kind_urls.append(i.get("href"))
+        if len(kind_names) == 0:
+            raise Exception('未能爬取类型数据列表')
 
         # 从模板excel提取需要爬取的数据类
         scraptlist = get_kindscrapt()
-        print(scraptlist)
-        print(kind_names)
+        print('excel目标类：', scraptlist)
+        print('网页上的所有目标类：', kind_names)
 
         kinds_willscrapt_name = []
         kinds_willscrapt_url = []
@@ -49,12 +52,12 @@ def kinds_data(mainurl):
             if kind_name in scraptlist:
                 kinds_willscrapt_name.append(kind_name)
                 kinds_willscrapt_url.append(kind_url)
-        return kinds_willscrapt_name, kinds_willscrapt_url
+        print('待爬取目标类：', kinds_willscrapt_name)
+        print('待爬取目标链接：', kinds_willscrapt_url)
 
     except Exception as e:
         print(e, mainurl)
         print("kinds_data出错，重新请求")
-        time.sleep(5)
         # 切换代理
         change_proxies()
         kinds_data(mainurl)
@@ -75,11 +78,12 @@ def kind_allpoints_data(kinds_url):
         for i in selects:
             namelist.append(i.getText())
             linklist.append(i.get("href"))
+        if len(namelist) == 0:
+            raise Exception("未成功获取一个类中的所有点信息")
         return namelist, linklist
     except Exception as e:
         print(e, kinds_url)
-        print("get_allpoints_namelink出错，重新请求")
-        time.sleep(5)
+        print("kind_allpoints_data，重新请求")
         # 切换代理
         change_proxies()
         kind_allpoints_data(kinds_url)
@@ -107,10 +111,12 @@ def get_pointimformation(namelist, linklist, kind_name):
             print(name + '：已经存在')
 
 
+
 # 找到每个点的具体信息
 @retry(stop_max_attempt_number=3)
 def point_data(name, point_url, kind_name):
-    global proxies_list, proxie_ip
+    global proxies_list, proxie_ip, error_num
+
     try:
         web_data = requests.get(point_url, proxies=proxie_ip)
         soup = BeautifulSoup(web_data.text, "html.parser")
@@ -133,9 +139,11 @@ def point_data(name, point_url, kind_name):
             print("此链接没信息：" + point_url)
 
     except Exception as e:
-        print(e, point_url)
+        error_num += 1
+        if error_num == 30:
+            proxies_list = get_10_proxies
+        print(e, point_url, ' error num:', error_num)
         print("point_data出错，重新请求")
-        time.sleep(7)
         # 切换代理
         change_proxies()
         point_data(name, point_url, kind_name)
@@ -144,10 +152,9 @@ def point_data(name, point_url, kind_name):
 @retry(stop_max_attempt_number=3)
 def get_10_proxies():
     try:
-        url = "http://http.tiqu.alicdns.com/getip3?num=10&type=1&pro=&city=0&yys=0&port=1&pack=79679&ts=0&ys=0&cs=0&lb=1&sb=0&pb=4&mr=1&regions=&gm=4"  # 从代理网站上获取的url
+        url = "http://webapi.http.zhimacangku.com/getip?num=10&type=1&pro=&city=0&yys=0&port=1&pack=79679&ts=0&ys=0&cs=0&lb=1&sb=0&pb=4&mr=1&regions="  # 从代理网站上获取的url
         page = requests.get(url)
         ip = page.text
-        print(ip)
         if ip == '{"code": 115, "data": [], "msg": "请重新提取", "success": false}':
             raise Exception('"code": 115, "data": [], "msg": "请重新提取"')
         elif ip == 'http://{"code":111,"data":[],"msg":"请2秒后再试","success":false}':
@@ -159,6 +166,7 @@ def get_10_proxies():
         for i in iplist:
             proxie = 'http://' + i
             proxies.append(proxie)
+        print("代理列表：", proxies)
         return proxies
     except Exception as e:
         print("未能获取有效代理地址:")
@@ -170,23 +178,20 @@ def get_10_proxies():
 # 切换代理
 def change_proxies():
     global proxies_list, proxie_ip
-    test = random.sample(proxies_list,1)[0]
     ip = random.sample(proxies_list,1)[0]
-    proxie_ip = {'http': ip}
-    print("proooooooooooooo")
+    proxie_ip = {'https': ip}   # 写成https就能爬取了，不知道tmd什么原因
     print(proxie_ip)
 
 def main():
-    global quelist, proxies_list
+    global quelist, proxies_list, error_num, kinds_willscrapt_name, kinds_willscrapt_url
+    error_num = 0
     quelist = []
     proxies_list = get_10_proxies()
     change_proxies()
-    print(1)
-    kindscraptname, kindscrapturl = kinds_data(main_url)  # 找到需要爬取的数据大类名称和链接
-    print(2)
-    for i in range(len(kindscraptname)):
-        kindname = kindscraptname[i]
-        kindurl = kindscrapturl[i]
+    kinds_data(main_url)  # 找到需要爬取的数据大类名称和链接
+    for i in range(len(kinds_willscrapt_name)):
+        kindname = kinds_willscrapt_name[i]
+        kindurl = kinds_willscrapt_url[i]
         try:   # 找到每一个类的所有点的名称和链接
             kind_allpoints_name, kind_allpoints_url = kind_allpoints_data(kindurl)
             print(kindname, kind_allpoints_name, kind_allpoints_url)
