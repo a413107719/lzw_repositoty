@@ -140,7 +140,7 @@ def findbest_maxfeatures():
 
 # 建立模型
 def build_model():
-    print("开始建立模型！莫慌，模型正在自动修正参数，该出现的始终会出现的。。。。。")
+    print("开始建立模型！模型正在自动修正参数，请稍后。。。。。")
     # 选择分类器的类型
     forest = RandomForestClassifier()
     # 可以通过定义树的各种参数，限制树的大小，防止出现过拟合现象
@@ -148,10 +148,10 @@ def build_model():
     parameters = {'n_estimators': [10],
                   'max_features': ['log2', 'sqrt', 'auto'],
                   'criterion': ['entropy', 'gini'],  # 分类标准用熵，基尼系数
-                  'max_depth': [2, 3, 5, 10],
+                  'max_depth': [2, 3, 5],
                   'min_samples_split': [2, 3, 5],
-                  'min_samples_leaf': [1, 5, 8]
-
+                  'min_samples_leaf': [1, 5, 8],
+                  'random_state': [10]
                   }
     # 以下是用于比较参数好坏的评分，使用'make_scorer'将'accuracy_score'转换为评分函数
     acc_scorer = make_scorer(accuracy_score)
@@ -279,22 +279,26 @@ def draw_tree():
     graph = pydotplus.graph_from_dot_data(dot_tree)
     img = Image(graph.create_png())
     # 设置决策树名称和输出路径
-    graph.write_png("D:/out0416.png")
-    print("D:/out0416.png")
+    graph.write_png(datapath + "/output_decisiontree.png")
+    # print("D:/out0416.png")
+
 
 # 模型预测
 def make_predictions():
     predictions = forest.predict(data_predict.drop(ID, axis=1))  # 删除ID字段
     output = pd.DataFrame({'id': data_predict[ID], 'prediction': predictions})
-    output.to_csv(r'F:\ceshi2.csv')
+    output.to_csv(datapath + '/output_predictresult.csv')
     output.head()
-    print("Congratulation!  Finish all steps")
+    print("顺利完成随机森林分析，请结合平台进行可视化，并在结果目录中查看决策树！！！")
 
 
 if __name__ == '__main__':
     # 获取数据
-    data_train = pd.read_csv("F:/data.csv")
-    data_predict = pd.read_csv("F:/test.csv")
+    datapath = "F:/测试数据/机器学习"
+    data_train_path = datapath + '/train.csv'
+    data_predict_path = datapath + '/predict.csv'
+    data_train = pd.read_csv(data_train_path)
+    data_predict = pd.read_csv(data_predict_path)
     print(data_train.head())
     print('-----------------------------------------')
     print()
