@@ -63,8 +63,6 @@ def kinds_data(mainurl):
         kinds_data(mainurl)
 
 
-
-
 # 得到一个类所有点的链接
 @retry(stop_max_attempt_number=3)
 def kind_allpoints_data(kinds_url):
@@ -140,8 +138,8 @@ def point_data(name, point_url, kind_name):
 
     except Exception as e:
         error_num += 1
-        if error_num == 30:
-            proxies_list = get_10_proxies
+        if error_num == 20:
+            main()
         print(e, point_url, ' error num:', error_num)
         print("point_data出错，重新请求")
         # 切换代理
@@ -181,6 +179,7 @@ def change_proxies():
     ip = random.sample(proxies_list,1)[0]
     proxie_ip = {'https': ip}   # 写成https就能爬取了，不知道tmd什么原因
     print(proxie_ip)
+
 
 def main():
     global quelist, proxies_list, error_num, kinds_willscrapt_name, kinds_willscrapt_url
