@@ -21,11 +21,11 @@ def get_GaoDeData():
         z=int(wzy[2])
         temp.append([x,y,z])
 
-    # map_osm = folium.Map(location=[35,110],zoom_start=10)    #绘制Map，开始缩放程度是5倍
-    # HeatMap(temp).add_to(map_osm)  # 将热力图添加到前面建立的map里
-    # file_path = r"高德交通大数据地图可视化.html"
-    # map_osm.save(file_path)     # 保存为html文件
-    # webbrowser.open(file_path)  # 默认浏览器打开
+    map_osm = folium.Map(location=[35,110],zoom_start=10)    #绘制Map，开始缩放程度是5倍
+    HeatMap(temp).add_to(map_osm)  # 将热力图添加到前面建立的map里
+    file_path = r"高德交通大数据地图可视化.html"
+    map_osm.save(file_path)     # 保存为html文件
+    webbrowser.open(file_path)  # 默认浏览器打开
 
     df=pd.DataFrame(temp)
     now = time.strftime("%Y-%m-%d-%H_%M_%S",time.localtime(time.time()))

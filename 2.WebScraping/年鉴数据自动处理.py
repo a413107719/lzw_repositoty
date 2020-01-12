@@ -8,20 +8,7 @@ import os
 import shutil
 from shutil import copy2
 
-def makeoutputpath(out_path):
-    # 创建输出路径
-    if os.path.isdir(out_path):
-        shutil.rmtree(out_path)
-        os.makedirs(out_path)
-        print('输出文件夹已存在，已覆盖')
-        print()
-    else:
-        os.makedirs(out_path)
-        print('新建输出文件夹：')
-        print(out_path + '\n')
-
-
-def get_all_excels(input_path, outputfolder, filelist):          
+def get_all_excels(input_path, outputfolder, filelist):
     # 从文件夹中找到所有的excel
     excelsfiles = []
     count = 0
@@ -368,55 +355,38 @@ def logwrite(out_path, data):
 
 
 if __name__ == '__main__':
-    domainpath = 'F:\\测试数据\\年鉴自动清理表头\\测试数据'
+    input_path = 'F:\\测试数据\\年鉴自动清理表头\\测试数据'
     out_path = 'F:\\测试数据\\年鉴自动清理表头\\output'
 
     allunsuccesslist = []
-    for currentfolder, subfolders, currentfiles in os.walk(domainpath):
-        # 构建inputpath,outputpath,filelist
-        # print(currentfolder, subfolders, currentfiles)
+    for currentfolder, subfolders, currentfiles in os.walk(input_path):
         inputpath = currentfolder
         filelist = currentfiles
-        # print(currentfolder.split(domainpath))
-        if currentfolder.split(domainpath) != ['', '']:
-            outputpath = out_path + currentfolder.split(domainpath)[1]
+
+        # 构造输出路径
+        if currentfolder.split(input_path) != ['', '']:
+            outputpath = out_path + currentfolder.split(input_path)[1]
             print(outputpath)
         else:
             outputpath = out_path
-        makeoutputpath(outputpath)
+        # 创建输出文件夹
+        if os.path.isdir(outputpath):
+            shutil.rmtree(outputpath)
+            os.makedirs(outputpath)
+            print('输出文件夹已存在，已覆盖')
+            print()
+        else:
+            os.makedirs(outputpath)
+            print('新建输出文件夹：')
+            print(outputpath + '\n')
 
-        # inputpath = 'F:\\测试数据\\年鉴自动清理表头\\测试数据'
-        # outputpath = 'F:\\测试数据\\年鉴自动清理表头\\output'
-        # 获取所有年鉴excel表格并建立结果文件夹
+        # 获取当前文件夹里的所有excel
         excels = get_all_excels(inputpath, outputpath, filelist)
+
+        # 开始处理excel
         print("------------------开始处理excel------------------------")
         unsuccess_list = []
         for xlsx in excels:
-
-            # excel = outputpath + '\\' + xlsx
-            # # 加载数据
-            # wb = openpyxl.load_workbook(excel)
-            # sheetname = wb.sheetnames[0]  # 直接取第一张表，因为年鉴每个excel只有一张表。
-            # sheet = wb[sheetname]
-            # maxrow = sheet.max_row
-            # maxcolumn = sheet.max_column
-            # # 提取表标题
-            # sheet_title = sheet.cell(1, 1).value
-            # print('正在处理表： ' + sheet_title)
-            # # 数据标准化
-            # data_standarize()
-            # # 提取表头和数据
-            # fieldname, sheetvalue = getheadandvalue()
-            # # print(fieldname)
-            # # print()
-            # # for i in sheetvalue:
-            # #     print(i)
-            # # 可视化表格
-            # newtable_visualise(fieldname, sheetvalue, fieldname)
-            # # 新建sheet，将表格写入,删除原有sheet1
-            # createnewsheet(fieldname, sheetvalue, sheet_title)
-
-
             try:
                 excel = outputpath + '\\' + xlsx
 
@@ -443,10 +413,7 @@ if __name__ == '__main__':
                 # 新建sheet，将表格写入,删除原有sheet1
                 createnewsheet(fieldname, sheetvalue, sheet_title)
             except Exception as e:
-                print(e)
                 unsuccess_list.append(sheet_title)
-        # print("未成功处理的文件包括：")
-        # print(unsuccess_list)
         allunsuccesslist.append([outputpath, unsuccess_list])
     logwrite(out_path, allunsuccesslist)
     print("已写入log")

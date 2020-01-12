@@ -50,13 +50,11 @@ def dwg2gdb(cad_folder, gdb_path, muban_excel):
                 if feature_name is None:
                     pass
                 else:
-                    # print('[' + feature_name + ']')
-                    # print(dwg_feature)
-                    # print(gdb_path)
-                    # print(feature_name)
-                    # print(selet_condition)
-                    arcpy.FeatureClassToFeatureClass_conversion(dwg_feature, gdb_path, feature_name, selet_condition)
-                    print("成功在数据库中添加要素：" + feature_name)
+                    selection = arcpy.SelectLayerByAttribute_management(dwg_feature, "NEW_SELECTION", selet_condition)
+                    rowcount1 = arcpy.GetCount_management(selection)
+                    if int(str(rowcount1)) > 0:   # 因为rowcount1返回的是一个result格式
+                        arcpy.FeatureClassToFeatureClass_conversion(dwg_feature, gdb_path, feature_name, selet_condition)
+                        print("成功在数据库中添加要素：" + feature_name + '  数量：' + str(rowcount1))
         print('-----------------------' + '\n' + '【' + feature_kind + "数据已提取完成" + '】' + "\n")
 
     # 删除空数据

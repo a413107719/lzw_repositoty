@@ -22,10 +22,12 @@ def main():
     allpointinformation = []
     for doc in docs:
         docname = doc.split('.')[0]
+        print('\n' + "开始获取：" + docname + ' 数据')
         docpath = input_folder + "\\" + doc
         document = Document(docpath)  # 打开.docx文件
-        find_allmedia(docname, docpath)
-        find_all_table(document,allpointinformation)
+        find_all_table(document,allpointinformation,docname,docpath)
+        print(docname + ' 数据获取完毕')
+
 
     for i in allpointinformation:
         print(i)
@@ -36,36 +38,35 @@ def write2excl(list):
     wb = openpyxl.Workbook()
     sheet = wb.active  # 选择一个excel页面
     # 表格填入数据
-    sheet.cell(row=1, column=1).value = "编号"
-    sheet.cell(row=1, column=2).value = "名称"
-    sheet.cell(row=1, column=3).value = "类型"
-    sheet.cell(row=1, column=4).value = "细类"
-    sheet.cell(row=1, column=5).value = "年代"
-    sheet.cell(row=1, column=6).value = "统计年代"
-    sheet.cell(row=1, column=7).value = "级别"
-    sheet.cell(row=1, column=8).value = "用途"
-    sheet.cell(row=1, column=9).value = "地址"
-    sheet.cell(row=1, column=10).value = "经度"
-    sheet.cell(row=1, column=11).value = "纬度"
-    sheet.cell(row=1, column=12).value = "海拔"
-    sheet.cell(row=1, column=13).value = "测点说明"
-    sheet.cell(row=1, column=14).value = "数量"
-    sheet.cell(row=1, column=15).value = "说明"
-    sheet.cell(row=1, column=16).value = "面积"
-    sheet.cell(row=1, column=17).value = "所有权"
-    sheet.cell(row=1, column=18).value = "使用单位"
-    sheet.cell(row=1, column=19).value = "隶属"
-    sheet.cell(row=1, column=20).value = "现状评估"
-    sheet.cell(row=1, column=21).value = "现状描述"
-    sheet.cell(row=1, column=22).value = "损毁原因_自然因素"
-    sheet.cell(row=1, column=23).value = "损毁原因_人为因素"
-    sheet.cell(row=1, column=24).value = "损毁原因_原因描述"
-    sheet.cell(row=1, column=25).value = "自然环境"
-    sheet.cell(row=1, column=26).value = "人文环境"
-    sheet.cell(row=1, column=27).value = "普查组建议"
-    sheet.cell(row=1, column=28).value = "简介"
-    sheet.cell(row=1, column=29).value = "照片说明"
-    sheet.cell(row=1, column=30).value = "照片拍摄时间"
+    sheet.cell(row=1, column=1).value = "名称"
+    sheet.cell(row=1, column=2).value = "类型"
+    sheet.cell(row=1, column=3).value = "细类"
+    sheet.cell(row=1, column=4).value = "年代"
+    sheet.cell(row=1, column=5).value = "统计年代"
+    sheet.cell(row=1, column=6).value = "级别"
+    sheet.cell(row=1, column=7).value = "用途"
+    sheet.cell(row=1, column=8).value = "地址"
+    sheet.cell(row=1, column=9).value = "经度"
+    sheet.cell(row=1, column=10).value = "纬度"
+    sheet.cell(row=1, column=11).value = "海拔"
+    sheet.cell(row=1, column=12).value = "测点说明"
+    sheet.cell(row=1, column=13).value = "数量"
+    sheet.cell(row=1, column=14).value = "说明"
+    sheet.cell(row=1, column=15).value = "面积"
+    sheet.cell(row=1, column=16).value = "所有权"
+    sheet.cell(row=1, column=17).value = "使用单位"
+    sheet.cell(row=1, column=18).value = "隶属"
+    sheet.cell(row=1, column=19).value = "现状评估"
+    sheet.cell(row=1, column=20).value = "现状描述"
+    sheet.cell(row=1, column=21).value = "损毁原因_自然因素"
+    sheet.cell(row=1, column=22).value = "损毁原因_人为因素"
+    sheet.cell(row=1, column=23).value = "损毁原因_原因描述"
+    sheet.cell(row=1, column=24).value = "自然环境"
+    sheet.cell(row=1, column=25).value = "人文环境"
+    sheet.cell(row=1, column=26).value = "普查组建议"
+    sheet.cell(row=1, column=27).value = "简介"
+    sheet.cell(row=1, column=28).value = "照片说明"
+    sheet.cell(row=1, column=29).value = "照片拍摄时间"
 
     for rownum, rowlist in enumerate(list):
         for colnum, text in enumerate(rowlist):
@@ -76,11 +77,12 @@ def write2excl(list):
 
 
 # 找出word内的所有table
-def find_all_table(document,allinfor):
+def find_all_table(document,allinfor,docname,docpath):
+    # print(len(document.tables))
     # 第2张表
     table = document.tables[1]
     table_imfor = extract_excel_imformation(table)
-    # # 打印原始表
+    # 打印原始表
     # for num, row in enumerate(table_imfor):
     #     print(num, row)
     # print()
@@ -90,7 +92,10 @@ def find_all_table(document,allinfor):
     for i in range(5, 11):
         if "●" in table_imfor[i][1]:
             leixing = table_imfor[i][1].split("●")[1]
-            xilei = table_imfor[i][3].split("●")[1].split("〇")[0]
+            if leixing == '其他':
+                xilei = '其他'
+            else:
+                xilei = table_imfor[i][3].split("●")[1].split("〇")[0]
             break
     niandai = table_imfor[11][1]
     tongjiniandai = table_imfor[12][3].split("■")[1].split("□")[0]
@@ -100,6 +105,12 @@ def find_all_table(document,allinfor):
     nishu = table_imfor[15][9]
     yongtu = get_multi_value(table_imfor[16][3])
     jibie = table_imfor[17][3].split("●")[1].split("〇")[0]
+
+    jd = get_xy(table_imfor[3][7])
+    wd = get_xy(table_imfor[3][2])
+    hb = table_imfor[3][11]
+    cdsm = table_imfor[4][5]
+
 
     # 第3张表
     table = document.tables[2]
@@ -130,47 +141,34 @@ def find_all_table(document,allinfor):
     rwhj = table_imfor[1][2]
     pczjy = table_imfor[2][2]
 
-    # 第5张表
-    table = document.tables[4]
-    table_imfor = extract_excel_imformation(table)
-    # # 打印原始表
-    # for num, row in enumerate(table_imfor):
-    #     print(num, row)
-    # print()
-    # 取值
-    bh = table_imfor[2][0]
-    jd = get_xy(table_imfor[2][1])
-    wd = get_xy(table_imfor[2][2])
-    hb = table_imfor[2][3]
-    cdsm = table_imfor[2][4]
+    if len(document.tables) < 5:
+        allinfor.append([
+            mingchen, leixing, xilei, niandai, tongjiniandai, jibie,
+            yongtu, dizhi, jd, wd, hb, cdsm, shuliang, shuoming, mianji,
+            suoyouquan, shiyongdanwei, nishu, xzpg, xzms, shyy_zrys,
+            shyy_rwys, shyy_ms, zrhj, rwhj, pczjy, jianjie
+        ])
 
-    # 第9张表
-    table = document.tables[8]
-    table_imfor = extract_excel_imformation(table)
-    # 打印原始表
-    # for num, row in enumerate(table_imfor):
-    #     print(num, row)
-    # print()
-    # 取值
-    zpsm = table_imfor[2][1]
-    pssj = table_imfor[1][3]
+    else:
+        find_allmedia(docname, docpath)
 
-    # print(zpsm,pssj)
-    # print(mingchen,dizhi,cedianshuoming)
-    # print(leixing,xilei,niandai,tongjiniandai,mianji,suoyouquan)
-    # print(shiyongdanwei,nishu,yongtu,jibie)
-    # print(shuliang,shuoming,jianjie)
-    # print(xzpg,xzms,shyy_zrys,shyy_rwys,shyy_ms)
-    # print(zrhj,rwhj,pczjy)
-    # print(bh,jd,wd,hb,cdsm)
-    # print()
+        # 第9张表
+        table = document.tables[8]
+        table_imfor = extract_excel_imformation(table)
+        # 打印原始表
+        # for num, row in enumerate(table_imfor):
+        #     print(num, row)
+        # print()
+        # 取值
+        zpsm = table_imfor[2][1]
+        pssj = table_imfor[1][3]
 
-    allinfor.append([
-        bh, mingchen, leixing, xilei, niandai, tongjiniandai, jibie,
-        yongtu, dizhi, jd, wd, hb, cdsm, shuliang, shuoming, mianji,
-        suoyouquan, shiyongdanwei, nishu, xzpg, xzms, shyy_zrys,
-        shyy_rwys, shyy_ms, zrhj, rwhj, pczjy,  jianjie, zpsm, pssj
-    ])
+        allinfor.append([
+            mingchen, leixing, xilei, niandai, tongjiniandai, jibie,
+            yongtu, dizhi, jd, wd, hb, cdsm, shuliang, shuoming, mianji,
+            suoyouquan, shiyongdanwei, nishu, xzpg, xzms, shyy_zrys,
+            shyy_rwys, shyy_ms, zrhj, rwhj, pczjy,  jianjie, zpsm, pssj
+        ])
 
 
 def get_xy(text):
@@ -178,9 +176,9 @@ def get_xy(text):
     fen = text.split('°')[1].split('\'')[0]
     miao =text.split('\'')[1].split('"')[0]
     # newtext = du + fen/60+miao/3600
-    print(du,fen,miao)
+    # print(du,fen,miao)
     newtext= float(du) + float(fen)/60 + float(miao)/3600
-    print(newtext)
+    # print(newtext)
     return newtext
 
 

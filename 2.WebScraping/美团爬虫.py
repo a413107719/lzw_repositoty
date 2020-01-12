@@ -30,7 +30,7 @@ def inputs_text(inputs):
         for y in text:
             print(i[0] + ': ' + str(y[i[2]]))
 
-    筛选信息
+    # 筛选信息
     names = soup.select('tiaojian')
     titles = soup.select('tiaojian')
     single_shop_url = soup.select('src')

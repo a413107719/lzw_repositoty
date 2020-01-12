@@ -60,7 +60,7 @@ def find_singlephoto():
 
 
 # 图片所处的绝对路径，其中r表示去掉python的内部转义
-PicPath = r'Z:\照片备份-肖洪丽'
+PicPath = r'F:\照片整理'
 CopyPath = r'F:\photozhengli'
 walk_file(PicPath)
 find_singlephoto()
