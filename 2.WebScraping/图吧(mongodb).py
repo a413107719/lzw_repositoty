@@ -150,7 +150,7 @@ def point_data(name, point_url, kind_name):
 @retry(stop_max_attempt_number=3)
 def get_10_proxies():
     try:
-        url = "http://webapi.http.zhimacangku.com/getip?num=10&type=1&pro=&city=0&yys=0&port=1&pack=79679&ts=0&ys=0&cs=0&lb=1&sb=0&pb=4&mr=1&regions="  # 从代理网站上获取的url
+        url = "http://http.tiqu.alicdns.com/getip3?num=5&type=1&pro=&city=0&yys=0&port=1&time=1&ts=0&ys=0&cs=0&lb=1&sb=0&pb=4&mr=1&regions=&gm=4"  # 从代理网站上获取的url
         page = requests.get(url)
         ip = page.text
         if ip == '{"code": 115, "data": [], "msg": "请重新提取", "success": false}':
