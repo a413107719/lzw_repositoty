@@ -25,7 +25,7 @@ origianlgdb_path = mainpath + original_gdbname
 outputgdbpath = mainpath + out_gdbname
 if arcpy.Exists(outputgdbpath):
     shutil.rmtree(outputgdbpath)
-    # print('output数据库已存在,将删除')
+print('正在复制gdb')
 shutil.copytree(origianlgdb_path, outputgdbpath)
 
 # 开始处理
