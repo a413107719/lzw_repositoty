@@ -5,14 +5,14 @@ import pandas as pd
 infid = "IN_FID"
 nearfc = "NEAR_FC"
 nearfid = 'NEAR_FID'
-poi = "poi"
-mid = "道路中点"
+poi = "轨道公交"
+mid = "社区质心"
 
 # 构建结果dataframe
 outputdataframe = pd.DataFrame(columns=(infid, poi, mid))
 
 
-excelfile = 'F:\\测试数据\\网络拆数据\\POI_道路中点.xls'
+excelfile = 'F:\\测试数据\\网络拆数据\\P社区交通.xls'
 data = pd.read_excel(excelfile)
 unique_infid = data[infid].unique()
 

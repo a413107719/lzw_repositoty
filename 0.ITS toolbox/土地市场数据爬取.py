@@ -137,7 +137,7 @@ if __name__ == '__main__':
     for i in range(pagenum):
         url = mainurl_begin + str(i + 1) + '.html'
         # print(url)
-        get_page_projects(mainurl)  # 找到每页所有项目
+        get_page_projects(url)  # 找到每页所有项目
         print("第%s页下载完毕" % str(i + 1))
         time.sleep(1)  # 时间保护
         # break
