@@ -5,6 +5,7 @@ import time
 import socket
 import uuid
 import shutil
+import gc
 
 
 # 新建一个output数据库
@@ -37,10 +38,12 @@ def dwg2gdb(cad_folder, gdb_path, muban_excel):
             num = num -1
             print('\n' + "-------------------------" + feature_kind + "还剩：" + str(num) + ' 个数据需要提取------------------------')
             print('【正在从"' + cad + '"中提取' + feature_kind + '数据】')
+            oldtime = time.time()
             dwg_feature = cad_folder + cad + "\\" + feature_kind
             arcpy.env.workspace = gdb_path
             arcpy.env.overwriteOutput = True
             for name in range(2, max_row+1):
+                time2 = time.time()
                 sheetvalue = sheet.cell(name, 1).value
                 if sheetvalue is None:
                     continue
@@ -51,11 +54,23 @@ def dwg2gdb(cad_folder, gdb_path, muban_excel):
                     pass
                 else:
                     # 去除数量为空的数据
+                    time31 = time.time()
+                    print('Excel执行时间：%f' % (time31 - time2))
                     selection = arcpy.SelectLayerByAttribute_management(dwg_feature, "NEW_SELECTION", selet_condition)
+                    time3 = time.time()
+                    print('select执行时间：%f' % (time3 - time31))
                     rowcount1 = arcpy.GetCount_management(selection)
                     if int(str(rowcount1)) > 0:   # 因为rowcount1返回的是一个result格式
                         arcpy.FeatureClassToFeatureClass_conversion(dwg_feature, gdb_path, feature_name, selet_condition)
                         print("成功在数据库中添加要素：" + feature_name + '  数量：' + str(rowcount1))
+                del name
+                gc.collect()
+            print('总执行时间：%f' % (time.time()-oldtime))
+            del selection
+            gc.collect()
+            arcpy.Delete_management('in_memory')
+        del cad
+        gc.collect()
         print('-----------------------' + '\n' + '【' + feature_kind + "数据已提取完成" + '】' + "\n")
 
     # 删除空数据
