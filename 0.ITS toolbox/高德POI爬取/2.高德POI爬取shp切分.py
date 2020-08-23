@@ -94,40 +94,52 @@ def build_gaodeandcsv_coord(coordlist):
 
 # 新建csv并写入值
 def writeinto_csv(path, field_names, data_rows):
-    csvFile = open(path, 'w', newline='')      # 1. 创建文件对象
-    csv_writer = csv.writer(csvFile)      # 2. 基于文件对象构建 csv写入对象
+    csv_File = open(path, 'w', newline='')      # 1. 创建文件对象
+    csv_writer = csv.writer(csv_File)      # 2. 基于文件对象构建 csv写入对象
     csv_writer.writerow(field_names)      # 3. 构建列表头
     number = 1
     for row in data_rows:
         data_row = [number, row]
         csv_writer.writerow(data_row)      # 4. 写入csv文件内容
         number += 1
-    csvFile.close()     # 5. 关闭文件
+    csv_File.close()     # 5. 关闭文件
 
 
-if __name__ == '__main__':
+def cutpolygon_main(xianyu_polygon, xiancheng_polygon, csvpath):
     arcpy.env.overwriteOutput = True
-    xianyu_polygon = r'F:\测试数据\高德api爬取\New File Geodatabase.gdb\CJDCQ'
-    # xiancheng_polygon = r'F:\测试数据\高德api爬取\New File Geodatabase.gdb\xiancheng'
-    xiancheng_polygon = ''
-    csvpath = "F:/test17.csv"
 
     # 提取县域范围坐标
     xianyu_coord = get_polygon_coord(xianyu_polygon)
-    # 存在县城范围，则提取县城范围坐标
+
+    # 如果存在县城范围，则提取县城范围坐标;如果不存在，则直接切4刀
     if xiancheng_polygon != '':
         arcpy.AddMessage('xiancheng exist')
         xiancheng_coord = get_polygon_coord(xiancheng_polygon)
         coord_list = cutpolygon_with_polygon(xianyu_coord, xiancheng_coord)
-
-    # 如果不存在，则直接切4刀
     else:
         arcpy.AddMessage('xiancheng does not exist')
-        coord_list = cut_polygon_mutiple([xianyu_coord], 4)
+        coord_list = cut_polygon_mutiple([xianyu_coord], 3)
 
-    # 新建csv并写入值
     gaode_coordlist, csv_coordlist = build_gaodeandcsv_coord(coord_list)
-    writeinto_csv(csvpath,("num", "coord"), csv_coordlist)
-    print(len(coord_list), coord_list)
 
+    # 如果需要写入csv，则执行
+    if csvpath != '':
+        arcpy.AddMessage('csvpath exist')
+        print('csv:',csv_coordlist)
+        writeinto_csv(csvpath, ("num", "coord"), csv_coordlist)
+        # print(len(coord_list), coord_list)
+
+    # print(gaode_coordlist)
+    return gaode_coordlist
+
+
+if __name__ == '__main__':
+    # 参数
+    xianyu = r'F:\测试数据\高德api爬取\New File Geodatabase.gdb\CJDCQ'
+    xiancheng = ''  # r'F:\测试数据\高德api爬取\New File Geodatabase.gdb\xiancheng'
+    csvfile = ''  # "F:/test18.csv"
+
+    # 执行程序
+    coordlist = cutpolygon_main(xianyu, xiancheng, csvfile)
+    print(coordlist)
 
