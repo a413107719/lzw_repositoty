@@ -135,11 +135,11 @@ def cutpolygon_main(xianyu_polygon, xiancheng_polygon, csvpath):
 
 if __name__ == '__main__':
     # 参数
-    xianyu = r'F:\测试数据\高德api爬取\New File Geodatabase.gdb\CJDCQ'
-    xiancheng = ''  # r'F:\测试数据\高德api爬取\New File Geodatabase.gdb\xiancheng'
+    xianyu = r'F:\test.gdb\新都区界'
+    xiancheng = r'F:\test.gdb\新都城区'  # 可为空
     csvfile = ''  # "F:/test18.csv"
 
     # 执行程序
     coordlist = cutpolygon_main(xianyu, xiancheng, csvfile)
-    print(coordlist)
+    print(len(coordlist), coordlist)
 

@@ -3,8 +3,8 @@ import networkx as nx
 import arcpy
 from networkx.algorithms import bipartite
 
-inputsource = r'F:\测试数据\新都网络分析0607\生活相关设施与社区网络0610.gdb\p2pDistances_1'
-targetsource = r'F:\测试数据\新都网络分析0607\生活相关设施与社区网络0610.gdb\sheshi_CopyFeatures'
+inputsource = r'I:\彝良国土空间规划\数据分析\城区网络分析.gdb\p2pDistances_1'
+targetsource = r'I:\彝良国土空间规划\数据分析\城区网络分析.gdb\sheshi_CopyFeatures'
 
 # 读取权重表
 top_nodes, bottom_nodes, weight = [], [], []

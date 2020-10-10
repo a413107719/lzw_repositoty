@@ -230,6 +230,6 @@ def find_allmedia(docname, docpath):
 
 
 if __name__ == '__main__':
-    input_folder = 'L:\\三普信息提取'
+    input_folder = r'F:\测试数据\文物'
     main()
 

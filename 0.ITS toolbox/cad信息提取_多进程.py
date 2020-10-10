@@ -17,6 +17,7 @@ def create_gdb(cad_folder, gdbpath):
     arcpy.CreateFileGDB_management(cad_folder, "ProjectGDB.gdb")
     print("成功创建ProjectGDB.gdb数据库")
 
+
 def extract_features(sheet, cad, name, sheetvalue, time2, dwg_feature, gdb_path):
     time3 = time.time()
     cadname = cad.split('.')[0]
@@ -33,11 +34,7 @@ def extract_features(sheet, cad, name, sheetvalue, time2, dwg_feature, gdb_path)
             print('time:%f' % (time3 - time2), 'Excel：%f' % (time4 - time3), 'select：%f' % (time5 - time4), '数量：' + str(rowcount1), feature_name)
 
 
-
-def extract_kindfeatures(nums,feature_kind, cad, cad_folder, gdb_path, max_row, sheet):
-    nums = nums - 1
-    print('\n' + "-------------------------" + feature_kind + "还剩：" + str(nums) + ' 个数据需要提取------------------------')
-    print('【正在从"' + cad + '"中提取' + feature_kind + '数据】')
+def extract_kindfeatures(feature_kind, cad, cad_folder, gdb_path, max_row, sheet):
     time1 = time.time()
     dwg_feature = cad_folder + cad + "\\" + feature_kind
     arcpy.env.workspace = gdb_path
@@ -54,11 +51,8 @@ def extract_kindfeatures(nums,feature_kind, cad, cad_folder, gdb_path, max_row, 
     pool.join()
 
 
-
 # 提取点、线、面和注记数据
 def dwg2gdb(cad_folder, gdb_path, muban_excel):
-    global nums
-
     wb = openpyxl.load_workbook(muban_excel)
     # 提取cad列表
     os.chdir(cad_folder)
@@ -71,11 +65,14 @@ def dwg2gdb(cad_folder, gdb_path, muban_excel):
     # 分点、线、面、注记提取数据
     feature_kinds = ['Point', 'Polyline', 'Polygon', 'Annotation']
     for feature_kind in feature_kinds:
+        num = nums
         sheet = wb[feature_kind]
         max_row = sheet.max_row
         for cad in cads:
             # 提取分类要素
-            extract_kindfeatures(nums, feature_kind, cad, cad_folder, gdb_path, max_row, sheet)
+            num = num - 1
+            print('\n' + '【正从"' + cad + '"中提取' + feature_kind + '数据，' + "剩余：" + str(num) + ' 个' + feature_kind + '数据需要提取】')
+            extract_kindfeatures(feature_kind, cad, cad_folder, gdb_path, max_row, sheet)
         print('-----------------------' + '\n' + '【' + feature_kind + "数据已提取完成" + '】' + "\n")
 
     # 删除空数据
